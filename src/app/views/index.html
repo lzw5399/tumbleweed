@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{.AppName}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/assets/css/bulma.min.css"/>
+    <link rel="stylesheet" href="/assets/css/index.css"/>
+    <script defer src="/assets/js/all.js"></script>
+    <script type="text/javascript" src="/assets/js/index.js"></script>
+</head>
+<body>
+<section class="hero is-mono">
+    <div class="hero-body">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <p class="title">
+                        Bank OCR
+                    </p>
+                    <p class="subtitle">
+                        OCR图形操作界面
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="columns">
+
+            <div class="column">
+
+                <p class="title">输入</p>
+                <p class="subtitle">支持图片文件或者Base64编码的字符串</p>
+
+                <div class="card">
+                    <div class="card-content">
+                        <div class="content">
+                            <div class="img-container">
+                                <img id="img" src=""/>
+                                <p>No Image Selected</p>
+                            </div>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a class="card-footer-item" id="by-file">File</a>
+                        <a class="card-footer-item" id="by-base64">base64</a>
+                        <a class="card-footer-item" id="cancel-input">Cancel</a>
+                        <input type="file" accept="image/*" style="display:none" id="file"/>
+                    </footer>
+                </div>
+
+            </div>
+
+            <div class="column">
+                <p class="title">可选项</p>
+                <p class="subtitle">Optional flags</p>
+
+                <div class="field">
+                    <label class="label">语言</label>
+                    <p class="help">指定要识别的语言种类，如eng(英文) chi_sim(简体中文)，可以用逗号隔开指定多个, 不指定默认是eng</p>
+                    <div class="control">
+                        <input class="input" type="text" name="langs" placeholder="eng,chi_sim">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">字符白名单</label>
+                    <p class="help">为空检测全部字符。如果填写，仅会检测白名单之内的字符</p>
+                    <div class="control">
+                        <input class="input" type="text" name="whitelist" placeholder="abc012_-/">
+                    </div>
+                </div>
+
+                <div class="field" id="pixel-container">
+                    <label class="label">矩阵像素点</label>
+                    <p class="help">为空识别整张图片。如果填写，会仅识别一组(两个)像素坐标点围成的矩阵内的文字，可以指定多组</p>
+                </div>
+
+                <div class="field">
+                    <label class="label">业务相关的特殊处理</label>
+                    <div class="dropdown">
+                        <div class="dropdown-trigger">
+                            <button class="button" aria-haspopup="true" aria-controls="dropdown-menu3">
+                                <span>Click me</span>
+                                <span class="icon is-small">
+                                    <i class="fas fa-angle-down" aria-hidden="true"></i>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="dropdown-menu" id="dropdown-menu3" role="menu">
+                            <div class="dropdown-content">
+                                <a href="#" class="dropdown-item">
+                                    Overview
+                                </a>
+                                <a href="#" class="dropdown-item">
+                                    Modifiers
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="content-checkbox">
+                        <input type="checkbox" name="trimLineFeed" id="trimLineFeed">
+                        <label class="label" for="trimLineFeed" style="display: contents">结果省略换行符</label>
+                    </div>
+                    <div class="content-checkbox">
+                        <input type="checkbox" name="hocr" id="hocrMode">
+                        <label class="label" for="hocrMode" style="display: contents">hOCR模式</label>
+                    </div>
+                    <div class="content-checkbox">
+                        <input type="checkbox" name="hocr" id="hocrMode">
+                        <label class="label" for="hocrMode" style="display: contents">保留空格</label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <button class="button is-info is-fullwidth is-medium" id="submit">
+            <span style="display:none;">
+              <span id="loading" class="icon"><i class="fas fa-spinner fa-pulse"></i></span>
+              <span style="vertical-align:top;">Processing...</span>
+            </span>
+                    <span>
+              <span id="standby" class="icon"><i class="fas fa-spinner fa-paper-plane"></i></span>
+              <span style="vertical-align:top;">提交</span>
+            </span>
+                </button>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column" style="width:100%;">
+                <p class="title">输出</p>
+                <pre id="output" style="width:100%;overflow:scroll;">{}</pre>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+</body>
+</html>

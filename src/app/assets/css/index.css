@@ -1,0 +1,72 @@
+* {
+    transition: all 0.1s;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* pixel */
+.pixel {
+    width: 18%;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+.pixel-group {
+    height: 38px;
+    line-height: 38px;
+}
+
+/* Hero */
+.hero.is-mono {
+    background-color: #303030;
+}
+
+.hero.is-mono *:not(a) {
+    color: #ffffff;
+}
+
+.hero.is-mono a:hover {
+    color: #40a0fd;
+}
+
+/* Image Container */
+.img-container {
+    text-align: center;
+    background-size: contain;
+}
+
+.img-container > img {
+    display: block;
+    object-fit: contain;
+}
+
+.img-container > img:not([src=""]) {
+    width: 100%;
+}
+
+.img-container > img:not([src=""]) + p {
+    display: none;
+}
+
+.img-container > img[src=""] {
+    display: none;
+}
+
+.content-checkbox {
+    width: 50%;
+    float: left;
+}
+
+.content-checkbox > input + label {
+    cursor: pointer;
+}

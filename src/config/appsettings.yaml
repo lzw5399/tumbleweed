@@ -1,0 +1,12 @@
+app:
+  name: 'bank/distributedquery'
+
+ocr:
+  default-langs:
+    - eng
+
+log:
+  prefix: '[bank/distributedquery]'
+  stdout: 'DEBUG'
+  log-file: false
+  file: 'DEBUG'
