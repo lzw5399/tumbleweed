@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"bank/distributedquery/src/global"
-	"bank/distributedquery/src/util"
+	"bank/workflow/engine/src/global"
+	"bank/workflow/engine/src/util"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/configor"

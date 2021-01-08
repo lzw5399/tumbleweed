@@ -8,7 +8,7 @@ package router
 import (
 	"net/http"
 
-	"bank/distributedquery/src/controller"
+	"workflow/src/controller"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,9 +25,9 @@ func InitRouter() *gin.Engine {
 	r.Use(cors.Default())
 
 	// swagger
-	r.GET("/api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	r.GET("/swagger", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/api/swagger/index.html")
+	r.GET("/api/dq/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/api/dq/swagger", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
 	})
 
 	// static
@@ -37,16 +37,12 @@ func InitRouter() *gin.Engine {
 
 	// APIs
 	r.GET("/", controller.Index)
-	r.GET("/api/info", controller.Info)
 	r.GET("/api/info/ready", controller.Readiness)
 	r.GET("/api/info/alive", controller.Liveliness)
 
-	ocrGroup := r.Group("/api/ocr")
+	ocrGroup := r.Group("/api/workflow")
 	{
 		ocrGroup.POST("file", controller.ScanFile)
-		ocrGroup.POST("scan-crop-file", controller.ScanCropFile)
-		ocrGroup.POST("base64", controller.Base64)
-		ocrGroup.POST("scan-crop-base64", controller.ScanCropBase64)
 	}
 
 	return r

@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"bank/distributedquery/src/config"
-	"bank/distributedquery/src/global"
-	"bank/distributedquery/src/util"
+	"workflow/src/config"
+	"workflow/src/global"
+	"workflow/src/util"
 
 	"github.com/gin-gonic/gin"
 	rotatelogs "github.com/lestrrat/go-file-rotatelogs"

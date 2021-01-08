@@ -10,7 +10,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build .
 
-RUN mkdir publish && cp distributedquery publish && \
+RUN mkdir publish && cp engine publish && \
     cp -r src/app publish && mkdir publish/config && \
     cp src/config/appsettings.yaml publish/config/
 
@@ -35,4 +35,4 @@ ENV GIN_MODE=release \
 
 EXPOSE 5000
 
-ENTRYPOINT ["./distributedquery"]
+ENTRYPOINT ["./engine"]

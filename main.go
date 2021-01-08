@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bank/distributedquery/src/router"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	_ "bank/distributedquery/src/docs"
-	_ "bank/distributedquery/src/initialize"
-	_ "bank/distributedquery/src/router"
+	_ "bank/workflow/engine/src/docs"
+	_ "bank/workflow/engine/src/initialize"
+	"bank/workflow/engine/src/router"
+	_ "bank/workflow/engine/src/router"
 )
 
 func main() {

@@ -2,11 +2,10 @@ vendor
 coverage.txt
 .idea
 .vscode
-bank-ocr
-bank-ocr.exe
+engine
+engine.exe
 log
 appsettings.*.yaml
 *.pdf
 *.png
 node_modules/
-package-lock.json

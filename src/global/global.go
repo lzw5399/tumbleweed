@@ -6,7 +6,7 @@
 package global
 
 import (
-	"bank/distributedquery/src/config"
+	"workflow/src/config"
 
 	golog "github.com/op/go-logging"
 )
