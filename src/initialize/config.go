@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"bank/workflow/engine/src/global"
-	"bank/workflow/engine/src/util"
+	"workflow/src/global"
+	"workflow/src/util"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/configor"

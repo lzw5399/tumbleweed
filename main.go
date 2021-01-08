@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	_ "bank/workflow/engine/src/docs"
-	_ "bank/workflow/engine/src/initialize"
-	"bank/workflow/engine/src/router"
-	_ "bank/workflow/engine/src/router"
+	// _ "bank/workflow/engine/src/docs"
+	_ "workflow/src/initialize"
+	"workflow/src/router"
+	_ "workflow/src/router"
 )
 
 func main() {
