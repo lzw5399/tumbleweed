@@ -5,13 +5,9 @@
  */
 package model
 
-import (
-	"gorm.io/gorm"
-)
-
 // 流程实例
 type ProcessInstance struct {
-	gorm.Model
+	DbBase
 	ProcDefID     int    `json:"procDefId"`   // 流程定义ID
 	ProcDefName   string `json:"procDefName"` // 流程定义名
 	Title         string `json:"title"`       // title 标题

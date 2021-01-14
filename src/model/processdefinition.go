@@ -5,11 +5,9 @@
  */
 package model
 
-import "gorm.io/gorm"
-
 // 流程定义表
 type ProcessDefinition struct {
-	gorm.Model
+	DbBase
 	Name       string `json:"name,omitempty"`
 	Version    int    `json:"version,omitempty"`
 	Resource   string `gorm:"size:10000" json:"resource,omitempty"` // 流程定义json字符串

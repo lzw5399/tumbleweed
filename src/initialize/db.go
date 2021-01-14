@@ -37,7 +37,7 @@ func init() {
 		DisableForeignKeyConstraintWhenMigrating: true, // 忽略迁移添加外键
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   "wf.", // 指定schema
-			SingularTable: true, // 表名不加s
+			SingularTable: true,  // 表名不加s
 		},
 	})
 
@@ -55,8 +55,14 @@ func init() {
 	}
 }
 
+// 自动迁移
 func doMigration() {
-	err := global.BankDb.AutoMigrate(&model.ProcessInstance{})
+	err := global.BankDb.AutoMigrate(
+		&model.ProcessInstance{}, &model.ProcessInstanceHistory{},
+		&model.ProcessDefinition{}, &model.ProcessDefinitionHistory{},
+		&model.Execution{}, &model.ExecutionHistory{},
+		&model.IdentityLink{}, &model.IdentityLinkHistory{},
+		&model.Task{}, &model.TaskHistory{})
 	if err != nil {
 		log.Fatalf("迁移发生错误，错误信息为:%s", err.Error())
 	}
