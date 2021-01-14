@@ -15,3 +15,7 @@ db:
   max_open_conn: 50 # 最多的打开连接数，默认0(无限制)
   logmode: true # false的话gorm只会输出错误日志，true会输出详细日志
   auto_migrate: true # 自动迁移
+
+redis:
+  conn_str: 127.0.0.1:6379
+  enabled: false
