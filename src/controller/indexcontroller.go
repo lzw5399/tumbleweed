@@ -16,7 +16,7 @@ import (
 
 func Index(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", gin.H{
-		"AppName": global.BANK_CONFIG.App.Name,
+		"AppName": global.BankConfig.App.Name,
 	})
 }
 

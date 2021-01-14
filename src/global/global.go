@@ -1,17 +1,21 @@
 /**
  * @Author: lzw5399
- * @Date: 2020/9/30 14:30
- * @Desc: global object, will initialized after project starting
+ * @Date: 2021/01/12 15:11:13
+ * @Desc: 全局对象, 将在程序启动后初始化
  */
 package global
 
 import (
 	"workflow/src/config"
 
+	"github.com/go-redis/redis"
 	golog "github.com/op/go-logging"
+	"gorm.io/gorm"
 )
 
 var (
-	BANK_CONFIG config.Config
-	BANK_LOGGER *golog.Logger
+	BankConfig config.Config
+	BankLogger *golog.Logger
+	BankDb     *gorm.DB
+	BankRedis *redis.Client
 )

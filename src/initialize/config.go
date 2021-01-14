@@ -7,6 +7,7 @@ package initialize
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -26,13 +27,13 @@ func init() {
 
 	var err error
 	if util.PathExists(overrideConfigFileName) {
-		err = configor.Load(&global.BANK_CONFIG, "config/appsettings.yaml", overrideConfigFileName)
+		err = configor.Load(&global.BankConfig, "config/appsettings.yaml", overrideConfigFileName)
 	} else {
-		err = configor.Load(&global.BANK_CONFIG, "config/appsettings.yaml")
+		err = configor.Load(&global.BankConfig, "config/appsettings.yaml")
 	}
 
 	if err != nil {
-		panic("resolve settings failed...")
+		log.Fatalf("配置初始化失败, 原因:%s", err.Error())
 	}
 }
 
@@ -52,4 +53,3 @@ func getEnvCode() string {
 
 	return "Development"
 }
-
