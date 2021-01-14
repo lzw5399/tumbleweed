@@ -11,7 +11,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build .
 
 RUN mkdir publish && cp workflow publish && \
-    cp -r src/app publish && mkdir publish/config && \
+    mkdir publish/config && \
     cp src/config/appsettings.yaml publish/config/
 
 FROM docker-mirror.sh.synyi.com/alpine:3.12
