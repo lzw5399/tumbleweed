@@ -23,7 +23,7 @@ import (
 // 所以如果需要依赖，不要让package内的其他文件排在config.go前面
 func init() {
 	envCode := getEnvCode()
-	overrideConfigFileName := fmt.Sprintf("config/appsettings.%s.yaml", envCode)
+	overrideConfigFileName := fmt.Sprintf("src/config/appsettings.%s.yaml", envCode)
 
 	var err error
 	if util.PathExists(overrideConfigFileName) {

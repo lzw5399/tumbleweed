@@ -6,18 +6,15 @@
 package controller
 
 import (
-	"net/http"
-
-	"workflow/src/global"
+	"time"
+	
 	"workflow/src/global/response"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Index(c *gin.Context) {
-	c.HTML(http.StatusOK, "index.html", gin.H{
-		"AppName": global.BankConfig.App.Name,
-	})
+	response.OkWithData(c, time.Now())
 }
 
 func Liveliness(c *gin.Context) {

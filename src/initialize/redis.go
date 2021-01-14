@@ -13,12 +13,11 @@ import (
 )
 
 func init() {
-	log.Print("-------开始初始化redis连接--------")
+	log.Println("-------开始初始化redis连接--------")
 
 	client := redis.NewClient(&redis.Options{
-
 	})
 
 	global.BankRedis = client
-	log.Print("-------初始化redis连接成功--------")
+	log.Println("-------初始化redis连接成功--------")
 }

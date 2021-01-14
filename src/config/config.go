@@ -18,12 +18,11 @@ type App struct {
 type Db struct {
 	Host        string `yaml:"host"`
 	Port        int    `yaml:"port"`
-	InitialDb   string `yaml:"initial_db"`
+	Database    string `yaml:"database"`
 	Username    string `yaml:"username"`
 	Password    string `yaml:"password"`
-	MaxIdleConn int    `yaml:"max_idle_conn"`
-	MaxOpenConn int    `yaml:"max_open_conn"`
 	LogMode     bool   `yaml:"logmode"`
+	AutoMigrate bool   `yaml:"auto_migrate"`
 }
 
 type Log struct {

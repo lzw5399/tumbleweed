@@ -30,11 +30,6 @@ func Setup() *gin.Engine {
 		c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
 	})
 
-	// static
-	r.LoadHTMLGlob("./src/app/views/*")
-	r.Static("/assets", "./src/app/assets")
-	r.StaticFile("/favicon.ico", "./src/app/assets/favicon.ico")
-
 	// APIs
 	r.GET("/", controller.Index)
 	r.GET("/api/info/ready", controller.Readiness)
