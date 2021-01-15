@@ -5,6 +5,8 @@
  */
 package model
 
+import "workflow/src/global"
+
 // 流程定义表
 type ProcessDefinition struct {
 	DbBase
@@ -15,4 +17,8 @@ type ProcessDefinition struct {
 	Username   string `json:"username,omitempty"`
 	Company    string `json:"company,omitempty"` // 用户所在公司
 	DeployTime string `json:"deployTime,omitempty"`
+}
+
+func (p *ProcessDefinition) Create() {
+	global.BankDb.Create(p)
 }

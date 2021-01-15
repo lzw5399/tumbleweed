@@ -5,6 +5,11 @@
  */
 package request
 
+import (
+	"time"
+	"workflow/src/model"
+)
+
 type BpmnRequest struct {
 	Data string `json:"data"`
 }
@@ -50,4 +55,20 @@ type Definitions struct {
 			Outgoing []string `xml:"outgoing"`
 		} `xml:"endEvent"`
 	} `xml:"process"`
+}
+
+func (d *Definitions) ToProcess() model.ProcessDefinition {
+	return model.ProcessDefinition{
+		DbBase: model.DbBase{
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		},
+		Name:       "",
+		Version:    0,
+		Resource:   "",
+		Userid:     "",
+		Username:   "",
+		Company:    "",
+		DeployTime: "",
+	}
 }
