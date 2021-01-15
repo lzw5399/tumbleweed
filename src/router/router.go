@@ -35,9 +35,9 @@ func Setup() *gin.Engine {
 	r.GET("/api/info/ready", controller.Readiness)
 	r.GET("/api/info/alive", controller.Liveliness)
 
-	ocrGroup := r.Group("/api/workflow")
+	ocrGroup := r.Group("/api/process")
 	{
-		ocrGroup.POST("file", controller.ScanFile)
+		ocrGroup.POST("create", controller.CreateProcess)
 	}
 
 	return r
