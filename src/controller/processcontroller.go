@@ -1,17 +1,17 @@
 /**
  * @Author: lzw5399
  * @Date: 2021/01/15
- * @Desc: ocr related functionality
+ * @Desc: process控制器
  */
 package controller
 
 import (
 	"encoding/xml"
 	"net/http"
-	"workflow/src/service"
 
 	"workflow/src/global/response"
 	"workflow/src/model/request"
+	"workflow/src/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +31,7 @@ func CreateProcess(c *gin.Context) {
 		return
 	}
 
-	if err := service.CreateProcess(&bpmnDefinitions); err != nil {
+	if err := service.CreateProcess(&bpmnDefinitions.Process, r.Data); err != nil {
 		response.Failed(c, http.StatusInternalServerError)
 	}
 

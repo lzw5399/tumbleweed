@@ -8,7 +8,7 @@ package model
 import "time"
 
 type DbBase struct {
-	Id         uint `gorm:"primarykey"`
+	Id         string `gorm:"primarykey"`
 	CreateTime time.Time
 	UpdateTime time.Time
 }

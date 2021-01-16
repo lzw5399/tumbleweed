@@ -57,12 +57,11 @@ func init() {
 
 // 自动迁移
 func doMigration() {
+	global.BankDb.Exec("create schema if not exists emm;")
 	err := global.BankDb.AutoMigrate(
-		&model.ProcessInstance{}, &model.ProcessInstanceHistory{},
-		&model.ProcessDefinition{}, &model.ProcessDefinitionHistory{},
-		&model.Execution{}, &model.ExecutionHistory{},
-		&model.IdentityLink{}, &model.IdentityLinkHistory{},
-		&model.Task{}, &model.TaskHistory{})
+		&model.Process{}, &model.Event{},
+		&model.ExclusiveGateway{}, &model.SequenceFlow{},
+		&model.UserTask{})
 	if err != nil {
 		log.Fatalf("迁移发生错误，错误信息为:%s", err.Error())
 	}

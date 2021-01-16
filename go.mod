@@ -8,6 +8,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/jinzhu/configor v1.2.1
+	github.com/lib/pq v1.3.0
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
