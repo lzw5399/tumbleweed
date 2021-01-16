@@ -6,7 +6,7 @@
 package request
 
 import (
-	"time"
+	"strings"
 	"workflow/src/global/constant"
 	"workflow/src/model"
 )
@@ -62,15 +62,11 @@ type ProcessRequest struct {
 	} `xml:"endEvent"`
 }
 
-func (d *ProcessRequest) ToEvents() []model.Event {
+func (p *ProcessRequest) Events() []model.Event {
 	var events []model.Event
-	for _, v := range d.StartEvent {
+	for _, v := range p.StartEvent {
 		event := model.Event{
-			DbBase: model.DbBase{
-				Id:         v.ID,
-				CreateTime: time.Now(),
-				UpdateTime: time.Now(),
-			},
+			Code:     v.ID, // 导入的id对应code
 			Name:     v.Name,
 			Incoming: v.Incoming,
 			Outgoing: v.Outgoing,
@@ -79,13 +75,9 @@ func (d *ProcessRequest) ToEvents() []model.Event {
 		events = append(events, event)
 	}
 
-	for _, v := range d.EndEvent {
+	for _, v := range p.EndEvent {
 		event := model.Event{
-			DbBase: model.DbBase{
-				Id:         v.ID,
-				CreateTime: time.Now(),
-				UpdateTime: time.Now(),
-			},
+			Code:     v.ID, // 导入的id对应code
 			Name:     v.Name,
 			Incoming: v.Incoming,
 			Outgoing: v.Outgoing,
@@ -97,15 +89,65 @@ func (d *ProcessRequest) ToEvents() []model.Event {
 	return events
 }
 
-func (d *ProcessRequest) ToProcess(originXml string) model.Process {
+func (p *ProcessRequest) SequenceFlows() []model.SequenceFlow {
+	var flows []model.SequenceFlow
+	for _, v := range p.SequenceFlow {
+		flow := model.SequenceFlow{
+			Code:                v.ID,
+			SourceRef:           v.SourceRef,
+			TargetRef:           v.TargetRef,
+			ConditionExpression: v.ConditionExpression.Text,
+		}
+		flows = append(flows, flow)
+	}
+
+	return flows
+}
+
+func (p *ProcessRequest) Tasks() []model.UserTask {
+	var tasks []model.UserTask
+	for _, v := range p.UserTask {
+		userTask := model.UserTask{
+			Code:            v.ID,
+			Name:            v.Name,
+			FormKey:         v.FormKey,
+			Assignee:        v.Assignee,
+			CandidateUsers:  nil,
+			CandidateGroups: nil,
+			Incoming:        v.Incoming,
+			Outgoing:        v.Outgoing,
+		}
+		if v.CandidateGroups != "" {
+			userTask.CandidateGroups = strings.Split(v.CandidateGroups, ",")
+		}
+		if v.CandidateUsers != "" {
+			userTask.CandidateUsers = strings.Split(v.CandidateUsers, ",")
+		}
+		tasks = append(tasks, userTask)
+	}
+
+	return tasks
+}
+
+func (p *ProcessRequest) ExclusiveGateways() []model.ExclusiveGateway {
+	var gateways []model.ExclusiveGateway
+	for _, v := range p.ExclusiveGateway {
+		gateway := model.ExclusiveGateway{
+			Code:     v.ID,
+			Incoming: v.Incoming,
+			Outgoing: v.Outgoing,
+		}
+		gateways = append(gateways, gateway)
+	}
+
+	return gateways
+}
+
+func (p *ProcessRequest) Process(originXml string) model.Process {
 	return model.Process{
-		DbBase: model.DbBase{
-			Id:         d.ID,
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
-		},
-		Name:                d.Name,
-		Category:            d.ProcessCategory,
+		Code:                p.ID, // 导入的id对应code
+		Name:                p.Name,
+		Category:            p.ProcessCategory,
 		Version:             1, // 默认是版本1
 		Resource:            originXml,
 		StartEventIds:       nil,

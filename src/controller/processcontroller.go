@@ -33,6 +33,7 @@ func CreateProcess(c *gin.Context) {
 
 	if err := service.CreateProcess(&bpmnDefinitions.Process, r.Data); err != nil {
 		response.Failed(c, http.StatusInternalServerError)
+		return
 	}
 
 	response.Ok(c)

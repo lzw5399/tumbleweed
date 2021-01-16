@@ -9,6 +9,7 @@ import "github.com/lib/pq"
 
 type ExclusiveGateway struct {
 	DbBase
-	Incoming pq.StringArray `json:"incoming" gorm:"type:text[] default:array[]::text[]"`
-	Outgoing pq.StringArray `json:"outgoing" gorm:"type:text[] default:array[]::text[]"`
+	Code     string         `json:"code" gorm:"uniqueIndex"`
+	Incoming pq.StringArray `json:"incoming" gorm:"type:text[];default:array[]::text[]"`
+	Outgoing pq.StringArray `json:"outgoing" gorm:"type:text[];default:array[]::text[]"`
 }

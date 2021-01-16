@@ -30,15 +30,31 @@ func CreateProcess(r *request.ProcessRequest, originXml string) error {
 
 	// 开始事务
 	err := global.BankDb.Transaction(func(tx *gorm.DB) error {
-		events := r.ToEvents()
-		for _, event := range events {
+		for _, event := range r.Events() {
 			if err := tx.Create(&event).Error; err != nil {
 				return err
 			}
 		}
+		for _, gateway := range r.ExclusiveGateways() {
+			if err := tx.Create(&gateway).Error; err != nil {
+				return err
+			}
+		}
+		for _, flow := range r.SequenceFlows() {
+			if err := tx.Create(&flow).Error; err != nil {
+				return err
+			}
+		}
+		for _, task := range r.Tasks() {
+			if err := tx.Create(&task).Error; err != nil {
+				return err
+			}
+		}
 
-		process := r.ToProcess(originXml)
-		tx.Create(&process)
+		process := r.Process(originXml)
+		if err := tx.Create(&process).Error; err != nil {
+			return err
+		}
 
 		// 返回nil提交事务
 		return nil
