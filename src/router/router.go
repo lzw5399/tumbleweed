@@ -35,9 +35,14 @@ func Setup() *gin.Engine {
 	r.GET("/api/info/ready", controller.Readiness)
 	r.GET("/api/info/alive", controller.Liveliness)
 
-	ocrGroup := r.Group("/api/process")
+	processGroup := r.Group("/api/process")
 	{
-		ocrGroup.POST("create", controller.CreateProcess)
+		processGroup.POST("create", controller.CreateProcess)
+	}
+
+	instanceGroup := r.Group("/api/instance")
+	{
+		instanceGroup.POST("start", controller.StartProcessInstance)
 	}
 
 	return r

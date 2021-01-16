@@ -8,8 +8,9 @@ package model
 import "github.com/lib/pq"
 
 type ExclusiveGateway struct {
-	DbBase
-	Code     string         `json:"code" gorm:"uniqueIndex"`
-	Incoming pq.StringArray `json:"incoming" gorm:"type:text[];default:array[]::text[]"`
-	Outgoing pq.StringArray `json:"outgoing" gorm:"type:text[];default:array[]::text[]"`
+	TableBase
+	Code      string         `json:"code" gorm:"uniqueIndex"`
+	Incoming  pq.StringArray `json:"incoming" gorm:"type:text[];default:array[]::text[]"`
+	Outgoing  pq.StringArray `json:"outgoing" gorm:"type:text[];default:array[]::text[]"`
+	ProcessId uint           `json:"processId" gorm:"index:idx_processId2"`
 }

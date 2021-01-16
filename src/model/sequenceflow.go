@@ -6,9 +6,10 @@
 package model
 
 type SequenceFlow struct {
-	DbBase
+	TableBase
 	Code                string `json:"code" gorm:"uniqueIndex"`
 	SourceRef           string `json:"sourceRef"`
 	TargetRef           string `json:"targetRef"`
 	ConditionExpression string `json:"conditionExpression"`
+	ProcessId           uint   `json:"processId" gorm:"index:idx_processId4"`
 }

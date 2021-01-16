@@ -62,15 +62,16 @@ type ProcessRequest struct {
 	} `xml:"endEvent"`
 }
 
-func (p *ProcessRequest) Events() []model.Event {
+func (p *ProcessRequest) Events(processId uint) []model.Event {
 	var events []model.Event
 	for _, v := range p.StartEvent {
 		event := model.Event{
-			Code:     v.ID, // 导入的id对应code
-			Name:     v.Name,
-			Incoming: v.Incoming,
-			Outgoing: v.Outgoing,
-			Type:     constant.StartEvent,
+			Code:      v.ID, // 导入的id对应code
+			Name:      v.Name,
+			Incoming:  v.Incoming,
+			Outgoing:  v.Outgoing,
+			Type:      constant.StartEvent,
+			ProcessId: processId,
 		}
 		events = append(events, event)
 	}
@@ -89,7 +90,7 @@ func (p *ProcessRequest) Events() []model.Event {
 	return events
 }
 
-func (p *ProcessRequest) SequenceFlows() []model.SequenceFlow {
+func (p *ProcessRequest) SequenceFlows(processId uint) []model.SequenceFlow {
 	var flows []model.SequenceFlow
 	for _, v := range p.SequenceFlow {
 		flow := model.SequenceFlow{
@@ -97,6 +98,7 @@ func (p *ProcessRequest) SequenceFlows() []model.SequenceFlow {
 			SourceRef:           v.SourceRef,
 			TargetRef:           v.TargetRef,
 			ConditionExpression: v.ConditionExpression.Text,
+			ProcessId:           processId,
 		}
 		flows = append(flows, flow)
 	}
@@ -104,7 +106,7 @@ func (p *ProcessRequest) SequenceFlows() []model.SequenceFlow {
 	return flows
 }
 
-func (p *ProcessRequest) Tasks() []model.UserTask {
+func (p *ProcessRequest) Tasks(processId uint) []model.UserTask {
 	var tasks []model.UserTask
 	for _, v := range p.UserTask {
 		userTask := model.UserTask{
@@ -116,6 +118,7 @@ func (p *ProcessRequest) Tasks() []model.UserTask {
 			CandidateGroups: nil,
 			Incoming:        v.Incoming,
 			Outgoing:        v.Outgoing,
+			ProcessId:       processId,
 		}
 		if v.CandidateGroups != "" {
 			userTask.CandidateGroups = strings.Split(v.CandidateGroups, ",")
@@ -129,13 +132,14 @@ func (p *ProcessRequest) Tasks() []model.UserTask {
 	return tasks
 }
 
-func (p *ProcessRequest) ExclusiveGateways() []model.ExclusiveGateway {
+func (p *ProcessRequest) ExclusiveGateways(processId uint) []model.ExclusiveGateway {
 	var gateways []model.ExclusiveGateway
 	for _, v := range p.ExclusiveGateway {
 		gateway := model.ExclusiveGateway{
-			Code:     v.ID,
-			Incoming: v.Incoming,
-			Outgoing: v.Outgoing,
+			Code:      v.ID,
+			Incoming:  v.Incoming,
+			Outgoing:  v.Outgoing,
+			ProcessId: processId,
 		}
 		gateways = append(gateways, gateway)
 	}
@@ -145,15 +149,10 @@ func (p *ProcessRequest) ExclusiveGateways() []model.ExclusiveGateway {
 
 func (p *ProcessRequest) Process(originXml string) model.Process {
 	return model.Process{
-		Code:                p.ID, // 导入的id对应code
-		Name:                p.Name,
-		Category:            p.ProcessCategory,
-		Version:             1, // 默认是版本1
-		Resource:            originXml,
-		StartEventIds:       nil,
-		SequenceFlowIds:     nil,
-		UserTaskIds:         nil,
-		ExclusiveGatewayIds: nil,
-		EndEventIds:         nil,
+		Code:     p.ID, // 导入的id对应code
+		Name:     p.Name,
+		Category: p.ProcessCategory,
+		Version:  1,         // 默认是版本1
+		Resource: originXml, // 原始的xml存档
 	}
 }
