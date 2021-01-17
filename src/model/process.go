@@ -7,7 +7,7 @@ package model
 
 // 流程定义表
 type Process struct {
-	TableBase
+	EntityBase
 	Code                string         `json:"code" gorm:"uniqueIndex"`
 	Name                string         `json:"name"`                                                           // 流程名字
 	Category            string         `json:"category"`                                                       // 流程类别

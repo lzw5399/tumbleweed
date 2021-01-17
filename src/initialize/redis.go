@@ -7,6 +7,7 @@ package initialize
 
 import (
 	"log"
+
 	"workflow/src/global"
 
 	"github.com/go-redis/redis"

@@ -8,7 +8,7 @@ package model
 import "github.com/lib/pq"
 
 type Event struct {
-	TableBase
+	EntityBase
 	Code      string         `json:"code" gorm:"uniqueIndex"`
 	Name      string         `json:"name"`
 	Incoming  pq.StringArray `json:"incoming" gorm:"type:text[];default:array[]::text[]"`

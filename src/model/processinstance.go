@@ -8,7 +8,7 @@ package model
 import "gorm.io/datatypes"
 
 type ProcessInstance struct {
-	TableBase
+	EntityBase
 	ProcessId  uint           `json:"processId" gorm:"index:idx_processId3"`
 	Variables  datatypes.JSON `json:"variables"`                       // 流程变量，在流程生命周期中可用
 	IsFinished bool           `json:"isFinished" gorm:"default:false"` // 是否已完成

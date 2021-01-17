@@ -7,7 +7,7 @@ package model
 
 import "time"
 
-type TableBase struct {
+type EntityBase struct {
 	Id         uint      `gorm:"primarykey"`
 	CreateTime time.Time `gorm:"default:now()"`
 	UpdateTime time.Time `gorm:"default:now()"`

@@ -6,7 +6,7 @@
 package model
 
 type SequenceFlow struct {
-	TableBase
+	EntityBase
 	Code                string `json:"code" gorm:"uniqueIndex"`
 	SourceRef           string `json:"sourceRef"`
 	TargetRef           string `json:"targetRef"`

@@ -7,7 +7,6 @@ package initialize
 
 import (
 	"fmt"
-	"gorm.io/gorm/schema"
 	"log"
 
 	"workflow/src/global"
@@ -17,6 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
 func init() {

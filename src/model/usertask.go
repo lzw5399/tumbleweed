@@ -9,7 +9,7 @@ import "github.com/lib/pq"
 
 // 流程任务
 type UserTask struct {
-	TableBase
+	EntityBase
 	Code            string         `json:"code" gorm:"uniqueIndex"`
 	Name            string         `json:"name"`
 	FormKey         string         `json:"formKey"`

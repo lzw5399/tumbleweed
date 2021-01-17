@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func StartProcessInstance(r *request.InstanceRequest) (int, error) {
+func StartProcessInstance(r *request.InstanceRequest) (uint, error) {
 	// 检查流程是否存在
 	var process model.Process
 	err := global.BankDb.Where("code=?", r.ProcessCode).First(&process).Error
@@ -25,9 +25,9 @@ func StartProcessInstance(r *request.InstanceRequest) (int, error) {
 	}
 
 	// 创建流程
+	instance := r.ProcessInstance(process.Id)
 	err = global.BankDb.Transaction(func(tx *gorm.DB) error {
-		process := r.ProcessInstance(process.Id)
-		if err := tx.Create(&process).Error; err != nil {
+		if err := tx.Create(&instance).Error; err != nil {
 			return err
 		}
 
@@ -36,8 +36,8 @@ func StartProcessInstance(r *request.InstanceRequest) (int, error) {
 	})
 
 	if err != nil {
-		return http.StatusInternalServerError, errors.New("服务器内部错误")
+		return http.StatusInternalServerError, errors.New("流程实例创建失败")
 	}
 
-	return http.StatusOK, nil
+	return instance.Id, nil
 }
