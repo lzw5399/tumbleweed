@@ -43,6 +43,11 @@ func Setup() *gin.Engine {
 	instanceGroup := r.Group("/api/instance")
 	{
 		instanceGroup.POST("start", controller.StartProcessInstance)
+		instanceGroup.GET("get", controller.GetProcessInstance)
+		instanceGroup.GET("list", controller.ListProcessInstances)
+		instanceGroup.GET("variable/get", controller.GetInstanceVariable)
+		instanceGroup.GET("variable/list", controller.GetInstanceVariableList)
+		instanceGroup.POST("variable/set", controller.GetProcessInstance)
 	}
 
 	return r

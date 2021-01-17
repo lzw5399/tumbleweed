@@ -30,3 +30,9 @@ func MapToBytes(m map[string]interface{}) []byte {
 
 	return bytes
 }
+
+func StructToBytes(m interface{}) []byte {
+	bytes, _ := json.Marshal(m)
+
+	return bytes
+}

@@ -64,12 +64,15 @@ func FailWithMsg(c *gin.Context, status int, err interface{}) {
 	switch status {
 	// 400
 	case http.StatusBadRequest:
-
+		msg = "入参不合法"
+		
 	// 401
 	case http.StatusUnauthorized:
+		msg = "未授权"
 
 	// 404
 	case http.StatusNotFound:
+		msg = "记录未找到"
 
 	// 500
 	case http.StatusInternalServerError:

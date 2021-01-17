@@ -11,14 +11,24 @@ import (
 )
 
 type InstanceRequest struct {
-	ProcessCode string                 `json:"processCode"` // 流程模板唯一标识code
-	Variables   map[string]interface{} `json:"variables"`   // 流程启动时的初始变量
+	ProcessCode string                   `json:"processCode"` // 流程模板唯一标识code
+	Variables   []model.InstanceVariable `json:"variables"`   // 流程启动时的初始变量
 }
 
 func (i *InstanceRequest) ProcessInstance(processId uint) model.ProcessInstance {
 	return model.ProcessInstance{
 		ProcessId:  processId,
-		Variables:  util.MapToBytes(i.Variables),
+		Variables:  util.StructToBytes(i.Variables),
 		IsFinished: false,
 	}
+}
+
+type GetVariableRequest struct {
+	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty"`
+	VariableName string `json:"variableName,omitempty" form:"variableName,omitempty"`
+}
+
+type GetVariableListRequest struct {
+	PagingRequest
+	InstanceId uint `json:"instanceId,omitempty" form:"instanceId,omitempty"`
 }
