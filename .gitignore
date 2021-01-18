@@ -1,0 +1,11 @@
+vendor
+coverage.txt
+.idea
+.vscode
+engine
+engine.exe
+log
+appsettings.*.yaml
+*.pdf
+*.png
+node_modules/
