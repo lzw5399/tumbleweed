@@ -64,11 +64,9 @@ func FailWithMsg(c *gin.Context, status int, err interface{}) {
 	switch status {
 	// 400
 	case http.StatusBadRequest:
-		msg = "入参不合法"
-		
+
 	// 401
 	case http.StatusUnauthorized:
-		msg = "未授权"
 
 	// 404
 	case http.StatusNotFound:
@@ -76,8 +74,8 @@ func FailWithMsg(c *gin.Context, status int, err interface{}) {
 
 	// 500
 	case http.StatusInternalServerError:
-		msg = "server internal error, please contact the maintainer"
-		log.Println("err:", err)
+		//msg = "server internal error, please contact the maintainer"
+		log.Printf("err: %s", err)
 	}
 
 	resultWithStatus(c, status, false, nil, msg)
