@@ -9,12 +9,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"workflow/src/global"
 	"workflow/src/util"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/configor"
 )
 
@@ -37,18 +35,11 @@ func init() {
 	}
 }
 
-var envMap = map[string]string{
-	"debug":   "Development",
-	"release": "Production",
-}
-
 func getEnvCode() string {
-	ginMode := os.Getenv(gin.EnvGinMode)
+	envMode := os.Getenv("APP_ENV")
 
-	for k, v := range envMap {
-		if k == strings.ToLower(ginMode) {
-			return v
-		}
+	if envMode == "Production" {
+		return "Production"
 	}
 
 	return "Development"

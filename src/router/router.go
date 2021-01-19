@@ -6,29 +6,23 @@
 package router
 
 import (
-	"net/http"
-
 	"workflow/src/controller"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
-func Setup() *gin.Engine {
-	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
-
-	// default allow all origins
-	r.Use(cors.Default())
+func Setup() *echo.Echo {
+	r := echo.New()
+	r.Use(middleware.Logger())
+	r.Use(middleware.Recover())
+	r.Use(middleware.CORS())
 
 	// swagger
-	r.GET("/api/dq/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	r.GET("/api/dq/swagger", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
-	})
+	//r.GET("/api/dq/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	//r.GET("/api/dq/swagger", func(c *gin.Context) {
+	//	c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
+	//})
 
 	// APIs
 	r.GET("/", controller.Index)

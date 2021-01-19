@@ -5,8 +5,8 @@
  */
 package controller
 
-import "github.com/gin-gonic/gin"
+import "github.com/labstack/echo/v4"
 
-func CreateDeployment(c *gin.Context) {
-
+func CreateDeployment(c echo.Context) error {
+	return c.String(200, "")
 }

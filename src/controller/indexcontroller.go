@@ -7,20 +7,20 @@ package controller
 
 import (
 	"time"
-	
+
 	"workflow/src/global/response"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
-func Index(c *gin.Context) {
-	response.OkWithData(c, time.Now())
+func Index(c echo.Context) error {
+	return response.OkWithData(c, time.Now())
 }
 
-func Liveliness(c *gin.Context) {
-	response.Ok(c)
+func Liveliness(c echo.Context) error {
+	return response.Ok(c)
 }
 
-func Readiness(c *gin.Context) {
-	response.Ok(c)
+func Readiness(c echo.Context) error {
+	return response.Ok(c)
 }
