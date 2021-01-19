@@ -13,7 +13,7 @@ import (
 	"workflow/model/request"
 	"workflow/service"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
 var (
@@ -21,85 +21,75 @@ var (
 )
 
 // 创建新的实例
-func StartProcessInstance(c *gin.Context) {
+func StartProcessInstance(c echo.Context) error {
 	var r request.InstanceRequest
-	if err := c.ShouldBind(&r); err != nil {
-		response.Failed(c, http.StatusBadRequest)
-		return
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
 	}
 
 	result, err := instanceSvc.Start(&r)
 	if err != nil {
-		response.FailWithMsg(c, int(result), err)
-		return
+		return response.FailWithMsg(c, int(result), err)
 	}
 
-	response.OkWithData(c, result)
+	return response.OkWithData(c, result)
 }
 
 // 获取一个实例
-func GetProcessInstance(c *gin.Context) {
-	id, err := strconv.Atoi(c.Query("id"))
+func GetProcessInstance(c echo.Context) error {
+	id, err := strconv.Atoi(c.QueryParam("id"))
 	if err != nil {
-		response.Failed(c, http.StatusBadRequest)
-		return
+		return response.Failed(c, http.StatusBadRequest)
 	}
 
 	instance, err := instanceSvc.Get(uint(id))
 	if err != nil {
-		response.Failed(c, http.StatusNotFound)
-		return
+		return response.Failed(c, http.StatusNotFound)
 	}
 
-	response.OkWithData(c, instance)
+	return response.OkWithData(c, instance)
 }
 
 // process instance list
-func ListProcessInstances(c *gin.Context) {
+func ListProcessInstances(c echo.Context) error {
 	// 从queryString获取分页参数
 	var r request.PagingRequest
-	if err := c.BindQuery(&r); err != nil {
-		response.Failed(c, http.StatusBadRequest)
-		return
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
 	}
 
 	instances, err := instanceSvc.List(&r)
 	if err != nil {
-		response.Failed(c, http.StatusInternalServerError)
-		return
+		return response.Failed(c, http.StatusInternalServerError)
 	}
 
-	response.OkWithData(c, instances)
+	return response.OkWithData(c, instances)
 }
 
 // 获取流程实例中的变量
-func GetInstanceVariable(c *gin.Context) {
+func GetInstanceVariable(c echo.Context) error {
 	var r request.GetVariableRequest
-	if err := c.BindQuery(&r); err != nil {
-		response.Failed(c, http.StatusBadRequest)
-		return
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
 	}
 
 	resp, err := instanceSvc.GetVariable(&r)
 	if err != nil {
-		response.FailWithMsg(c, http.StatusInternalServerError, err)
-		return
+		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
 
-	response.OkWithData(c, resp)
+	return response.OkWithData(c, resp)
 }
 
-func GetInstanceVariableList(c *gin.Context) {
+func GetInstanceVariableList(c echo.Context) error {
 	var r request.GetVariableListRequest
-	if err := c.BindQuery(&r); err != nil {
-		response.Failed(c, http.StatusBadRequest)
-		return
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
 	}
 	variables, err := instanceSvc.ListVariables(&r)
 	if err != nil {
-		response.FailWithMsg(c, http.StatusInternalServerError, err)
-		return
+		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
 
-	response.OkWithData(c, variables)
+	return response.OkWithData(c, variables)
 }

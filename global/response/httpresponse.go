@@ -9,7 +9,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
 type HttpResponse struct {
@@ -18,36 +18,27 @@ type HttpResponse struct {
 	Data    interface{} `json:"data"`
 }
 
-func Ok(c *gin.Context) {
-	result(c, nil, "success")
+func Ok(c echo.Context) error {
+	return result(c, nil, "success")
 }
 
-func OkWithMessage(c *gin.Context, message string) {
-	result(c, nil, message)
+func OkWithMessage(c echo.Context, message string) error {
+	return result(c, nil, message)
 }
 
-func OkWithData(c *gin.Context, data interface{}) {
-	result(c, data, "操作成功")
+func OkWithData(c echo.Context, data interface{}) error {
+	return result(c, data, "操作成功")
 }
 
-func OkWithDetailed(c *gin.Context, data interface{}, message string) {
-	result(c, data, message)
+func OkWithDetailed(c echo.Context, data interface{}, message string) error {
+	return result(c, data, message)
 }
 
-// 最终返回c.PureJson
-func OkWithPureData(c *gin.Context, data interface{}) {
-	c.PureJSON(http.StatusOK, HttpResponse{
-		true,
-		"操作成功",
-		data,
-	})
+func Failed(c echo.Context, status int) error {
+	return FailWithMsg(c, status, "操作失败")
 }
 
-func Failed(c *gin.Context, status int) {
-	FailWithMsg(c, status, "操作失败")
-}
-
-func FailWithMsg(c *gin.Context, status int, err interface{}) {
+func FailWithMsg(c echo.Context, status int, err interface{}) error {
 	var msg interface{}
 
 	switch err.(type) {
@@ -78,16 +69,15 @@ func FailWithMsg(c *gin.Context, status int, err interface{}) {
 		log.Printf("err: %s", err)
 	}
 
-	resultWithStatus(c, status, false, nil, msg)
-	c.Abort()
+	return resultWithStatus(c, status, false, nil, msg)
 }
 
-func result(c *gin.Context, data interface{}, msg string) {
-	resultWithStatus(c, http.StatusOK, true, data, msg)
+func result(c echo.Context, data interface{}, msg string) error {
+	return resultWithStatus(c, http.StatusOK, true, data, msg)
 }
 
-func resultWithStatus(c *gin.Context, statusCode int, success bool, data interface{}, msg interface{}) {
-	c.JSON(statusCode, HttpResponse{
+func resultWithStatus(c echo.Context, statusCode int, success bool, data interface{}, msg interface{}) error {
+	return c.JSON(statusCode, HttpResponse{
 		success,
 		msg,
 		data,

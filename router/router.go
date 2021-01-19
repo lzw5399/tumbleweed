@@ -6,29 +6,27 @@
 package router
 
 import (
-	"net/http"
-
 	"workflow/controller"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	//swaggerFiles "github.com/swaggo/files"
+	//ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Setup() *gin.Engine {
-	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+func Setup() *echo.Echo {
+	r := echo.New()
+	r.Use(middleware.Logger())
+	r.Use(middleware.Recover())
 
 	// default allow all origins
-	r.Use(cors.Default())
+	r.Use(middleware.CORS())
 
 	// swagger
-	r.GET("/api/dq/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	r.GET("/api/dq/swagger", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
-	})
+	//r.GET("/api/wf/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	//r.GET("/api/wf/swagger", func(c *gin.Context) {
+	//	c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
+	//})
 
 	// APIs
 	r.GET("/", controller.Index)
@@ -43,11 +41,11 @@ func Setup() *gin.Engine {
 	instanceGroup := r.Group("/api/instance")
 	{
 		instanceGroup.POST("start", controller.StartProcessInstance)
-		instanceGroup.GET("get", controller.GetProcessInstance)
 		instanceGroup.GET("list", controller.ListProcessInstances)
-		instanceGroup.GET("variable/get", controller.GetInstanceVariable)
-		instanceGroup.GET("variable/list", controller.GetInstanceVariableList)
-		instanceGroup.POST("variable/set", controller.GetProcessInstance)
+		instanceGroup.GET(":id", controller.GetProcessInstance)
+		//instanceGroup.GET("variable/get", controller.GetInstanceVariable)
+		//instanceGroup.GET("variable/list", controller.GetInstanceVariableList)
+		//instanceGroup.POST("variable/set", controller.GetProcessInstance)
 	}
 
 	return r

@@ -5,8 +5,12 @@
  */
 package controller
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
 
-func CreateDeployment(c *gin.Context) {
+	"github.com/labstack/echo/v4"
+)
 
+func CreateDeployment(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
 }

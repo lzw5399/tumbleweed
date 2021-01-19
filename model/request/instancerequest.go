@@ -24,11 +24,11 @@ func (i *InstanceRequest) ProcessInstance(processId uint) model.ProcessInstance 
 }
 
 type GetVariableRequest struct {
-	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty"`
-	VariableName string `json:"variableName,omitempty" form:"variableName,omitempty"`
+	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty" query:"instanceId,omitempty"`
+	VariableName string `json:"variableName,omitempty" form:"variableName,omitempty" query:"variableName,omitempty"`
 }
 
 type GetVariableListRequest struct {
 	PagingRequest
-	InstanceId uint `json:"instanceId,omitempty" form:"instanceId,omitempty"`
+	InstanceId uint `json:"instanceId,omitempty" form:"instanceId,omitempty" query:"instanceId,omitempty"`
 }

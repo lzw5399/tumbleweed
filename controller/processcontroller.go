@@ -13,28 +13,25 @@ import (
 	"workflow/model/request"
 	"workflow/service"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
 // 创建流程process
-func CreateProcess(c *gin.Context) {
+func CreateProcess(c echo.Context) error {
 	var r request.BpmnRequest
-	if err := c.ShouldBind(&r); err != nil {
-		response.Failed(c, http.StatusBadRequest)
-		return
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
 	}
 
 	var bpmnDefinitions request.Definitions
 	err := xml.Unmarshal([]byte(r.Data), &bpmnDefinitions)
 	if err != nil {
-		response.FailWithMsg(c, http.StatusBadRequest, "不是标准的bpmn2.0定义的流程，请使用工作流设计器创建流程")
-		return
+		return response.FailWithMsg(c, http.StatusBadRequest, "不是标准的bpmn2.0定义的流程，请使用工作流设计器创建流程")
 	}
 
 	if err := service.CreateProcess(&bpmnDefinitions.Process, r.Data); err != nil {
-		response.Failed(c, http.StatusInternalServerError)
-		return
+		return response.Failed(c, http.StatusInternalServerError)
 	}
 
-	response.Ok(c)
+	return response.Ok(c)
 }
