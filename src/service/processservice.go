@@ -16,8 +16,19 @@ import (
 	"gorm.io/gorm"
 )
 
+type ProcessService interface {
+	CreateProcess(*request.ProcessRequest, string) error
+}
+
+type processService struct {
+}
+
+func NewProcessService() *processService {
+	return &processService{}
+}
+
 // 创建新的process流程
-func CreateProcess(r *request.ProcessRequest, originXml string) error {
+func (p *processService) CreateProcess(r *request.ProcessRequest, originXml string) error {
 	// 检查流程是否已存在
 	var c int64
 	global.BankDb.Model(&Process{}).Where("code=?", r.ID).Count(&c)

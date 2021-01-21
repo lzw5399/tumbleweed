@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	
+
 	"workflow/src/global"
 	"workflow/src/global/shared"
 	"workflow/src/model"
@@ -34,28 +34,16 @@ func NewInstanceService() *instanceService {
 	return &instanceService{}
 }
 
+// 启动实例
 func (i *instanceService) Start(r *request.InstanceRequest) (uint, error) {
-	// 检查流程是否存在
-	var process model.Process
-	err := global.BankDb.Where("code=?", r.ProcessCode).First(&process).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return http.StatusBadRequest, errors.New("当前流程不存在，请检查后重试")
-	}
-
-	// 创建流程
-	instance := r.ProcessInstance(process.Id)
-	err = global.BankDb.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&instance).Error; err != nil {
-			return err
-		}
-
-		// 返回nil提交事务
-		return nil
-	})
-
+	// 创建实例的记录
+	instance, err := createProcessInstance(r)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New("流程实例创建失败")
 	}
+
+	// 开始流程
+	
 
 	return instance.Id, nil
 }
@@ -132,4 +120,27 @@ func (i *instanceService) ListVariables(r *request.GetVariableListRequest) (*res
 		CurrentCount: int64(len(variables)),
 		Data:         &variables,
 	}, err
+}
+
+// 创建流程实例记录
+func createProcessInstance(r *request.InstanceRequest) (*model.ProcessInstance, error) {
+	// 检查流程是否存在
+	var process model.Process
+	err := global.BankDb.Where("code=?", r.ProcessCode).First(&process).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("当前流程不存在，请检查后重试")
+	}
+
+	// 创建流程
+	instance := r.ProcessInstance(process.Id)
+	err = global.BankDb.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&instance).Error; err != nil {
+			return err
+		}
+
+		// 返回nil提交事务
+		return nil
+	})
+
+	return &instance, err
 }

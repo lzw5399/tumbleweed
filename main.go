@@ -19,8 +19,6 @@ func main() {
 		port = "8082"
 	}
 
-	log.Printf("application has started, listening on port %s\n", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatal(err)
-	}
+	log.Printf("监听的端口为: %s", port)
+	log.Fatalf("应用启动失败，原因: %s\n", http.ListenAndServe(":"+port, r).Error())
 }

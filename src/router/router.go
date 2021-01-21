@@ -31,17 +31,17 @@ func Setup() *echo.Echo {
 
 	processGroup := r.Group("/api/process")
 	{
-		processGroup.POST("create", controller.CreateProcess)
+		processGroup.POST("/create", controller.CreateProcess)
 	}
 
 	instanceGroup := r.Group("/api/instance")
 	{
-		instanceGroup.POST("start", controller.StartProcessInstance)
-		instanceGroup.GET("get", controller.GetProcessInstance)
-		instanceGroup.GET("list", controller.ListProcessInstances)
-		instanceGroup.GET("variable/get", controller.GetInstanceVariable)
-		instanceGroup.GET("variable/list", controller.GetInstanceVariableList)
-		instanceGroup.POST("variable/set", controller.GetProcessInstance)
+		instanceGroup.POST("/start", controller.StartProcessInstance)
+		instanceGroup.GET("/get", controller.GetProcessInstance)
+		instanceGroup.GET("/list", controller.ListProcessInstances)
+		instanceGroup.GET("/variable/get", controller.GetInstanceVariable)
+		instanceGroup.GET("/variable/list", controller.GetInstanceVariableList)
+		instanceGroup.POST("/variable/set", controller.GetProcessInstance)
 	}
 
 	return r
