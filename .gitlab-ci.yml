@@ -902,7 +902,7 @@ rollout 100%:
 
   function install_tiller() {
     echo "Checking Tiller..."
-    helm init --upgrade --tiller-image sapcc/tiller:v2.6.1
+    helm init --upgrade --tiller-image sapcc/tiller:v$HELM_VERSION
     echo "init tiller done"
     kubectl rollout status -n "$TILLER_NAMESPACE" -w "deployment/tiller-deploy"
     echo "kubectl rollout done"
