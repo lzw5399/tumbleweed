@@ -32,7 +32,7 @@ subjects:
 """
 
 ingress_literal = string.Template("""{{- if .Values.service.enabled -}}
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: $name
