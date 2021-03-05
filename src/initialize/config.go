@@ -33,6 +33,9 @@ func init() {
 	if err != nil {
 		log.Fatalf("配置初始化失败, 原因:%s", err.Error())
 	}
+
+	// 加载环境变量
+	util.LoadEnv(&global.BankConfig)
 }
 
 func getEnvCode() string {

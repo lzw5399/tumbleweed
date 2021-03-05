@@ -30,7 +30,7 @@ RUN apk update && \
     echo "Asia/Shanghai" > /etc/timezone
 ENV TZ Asia/Shanghai
 
-ENV GIN_MODE=release \
+ENV APP_ENV=Production \
     PORT=5000
 
 EXPOSE 5000

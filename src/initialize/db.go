@@ -62,7 +62,7 @@ func doMigration() {
 		&model.Process{}, &model.Event{},
 		&model.ExclusiveGateway{}, &model.SequenceFlow{},
 		&model.UserTask{}, &model.ProcessInstance{},
-		&model.Deployment{}, &model.Group{},
+		&model.Group{},
 		&model.User{})
 	if err != nil {
 		log.Fatalf("迁移发生错误，错误信息为:%s", err.Error())

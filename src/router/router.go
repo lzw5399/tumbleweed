@@ -44,5 +44,10 @@ func Setup() *echo.Echo {
 		instanceGroup.POST("/variable/set", controller.GetProcessInstance)
 	}
 
+	taskGroup := r.Group("/api/task")
+	{
+		taskGroup.GET("/list", controller.ListTasks)
+	}
+
 	return r
 }
