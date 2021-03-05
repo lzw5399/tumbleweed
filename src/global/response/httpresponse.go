@@ -34,6 +34,14 @@ func OkWithDetailed(c echo.Context, data interface{}, message string) error {
 	return result(c, data, message)
 }
 
+func BadRequest(c echo.Context) error {
+	return FailWithMsg(c, http.StatusBadRequest, "错误的请求")
+}
+
+func BadRequestWithMessage(c echo.Context, message interface{}) error {
+	return FailWithMsg(c, http.StatusBadRequest, message)
+}
+
 func Failed(c echo.Context, status int) error {
 	return FailWithMsg(c, status, "操作失败")
 }

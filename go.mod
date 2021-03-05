@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/jinzhu/configor v1.2.1
 	github.com/labstack/echo/v4 v4.1.17
+	github.com/labstack/gommon v0.3.0
 	github.com/lib/pq v1.3.0
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect

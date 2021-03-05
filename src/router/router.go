@@ -31,7 +31,7 @@ func Setup() *echo.Echo {
 
 	processGroup := r.Group("/api/process")
 	{
-		processGroup.POST("/create", controller.CreateProcess)
+		processGroup.POST("/create", controller.CreateProcessDefinition)
 	}
 
 	instanceGroup := r.Group("/api/instance")
