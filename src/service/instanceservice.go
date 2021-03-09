@@ -20,7 +20,7 @@ import (
 )
 
 type InstanceService interface {
-	Start(*request.InstanceRequest) (uint, error)
+	CreateProcessInstance(*request.ProcessInstanceRequest) (uint, error)
 	Get(uint) (*model.ProcessInstance, error)
 	List(*request.PagingRequest) (*response.PagingResponse, error)
 	GetVariable(*request.GetVariableRequest) (*response.InstanceVariableResponse, error)
@@ -34,12 +34,12 @@ func NewInstanceService() *instanceService {
 	return &instanceService{}
 }
 
-// 启动实例
-func (i *instanceService) Start(r *request.InstanceRequest) (uint, error) {
+// 创建实例
+func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest) (uint, error) {
 	// 创建实例的记录
-	instance, err := createProcessInstance(r)
+	relatedPerson, err := json.Marshal([]int{tools.GetUserId(c)})
 	if err != nil {
-		return http.StatusInternalServerError, errors.New("流程实例创建失败")
+		return
 	}
 
 	// 开始流程
@@ -123,7 +123,7 @@ func (i *instanceService) ListVariables(r *request.GetVariableListRequest) (*res
 }
 
 // 创建流程实例记录
-func createProcessInstance(r *request.InstanceRequest) (*model.ProcessInstance, error) {
+func createProcessInstance(r *request.ProcessInstanceRequest) (*model.ProcessInstance, error) {
 	// 检查流程是否存在
 	var process model.Process
 	err := global.BankDb.Where("code=?", r.ProcessCode).First(&process).Error

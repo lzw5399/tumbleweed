@@ -13,7 +13,8 @@ type Config struct {
 }
 
 type App struct {
-	Name string `yaml:"name"`
+	Name          string `yaml:"name"`
+	EnableSwagger bool   `yaml:"enable_swagger"`
 }
 
 type Db struct {

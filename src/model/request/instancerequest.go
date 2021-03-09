@@ -6,22 +6,25 @@
 package request
 
 import (
+	"encoding/json"
 	"workflow/src/model"
-	"workflow/src/util"
 )
 
-type InstanceRequest struct {
-	ProcessCode string                   `json:"processCode"` // 流程模板唯一标识code
-	Variables   []model.InstanceVariable `json:"variables"`   // 流程启动时的初始变量
+type ProcessInstanceRequest struct {
+	model.ProcessInstance
+	FormId      int             `json:"formId" form:"formId"` // 表单的标识
+	SourceState string          `json:"sourceState"`
+	Tasks       json.RawMessage `json:"tasks"`
+	Source      string          `json:"source"`
 }
 
-func (i *InstanceRequest) ProcessInstance(processId uint) model.ProcessInstance {
-	return model.ProcessInstance{
-		ProcessId:  processId,
-		Variables:  util.StructToBytes(i.Variables),
-		IsFinished: false,
-	}
-}
+//func (i *ProcessInstanceRequest) ProcessInstance(processId uint) model.ProcessInstance {
+//	return model.ProcessInstance{
+//		ProcessId:  processId,
+//		Variables:  util.StructToBytes(i.Variables),
+//		IsFinished: false,
+//	}
+//}
 
 type GetVariableRequest struct {
 	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty"`

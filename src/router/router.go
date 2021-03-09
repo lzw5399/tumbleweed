@@ -7,6 +7,8 @@ package router
 
 import (
 	"workflow/src/controller"
+	"workflow/src/global"
+	customMiddleware "workflow/src/middleware"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -17,37 +19,20 @@ func Setup() *echo.Echo {
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recover())
 	r.Use(middleware.CORS())
+	r.Use(customMiddleware.Auth)
 
-	// swagger
-	//r.GET("/api/dq/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	//r.GET("/api/dq/swagger", func(c *gin.Context) {
-	//	c.Redirect(http.StatusMovedPermanently, "/api/dq/swagger/index.html")
-	//})
-
-	// APIs
+	// probe
 	r.GET("/", controller.Index)
 	r.GET("/api/info/ready", controller.Readiness)
 	r.GET("/api/info/alive", controller.Liveliness)
 
-	processGroup := r.Group("/api/process")
-	{
-		processGroup.POST("/create", controller.CreateProcessDefinition)
+	// swagger
+	if global.BankConfig.App.EnableSwagger {
+		RegisterSwagger(r)
 	}
 
-	instanceGroup := r.Group("/api/instance")
-	{
-		instanceGroup.POST("/start", controller.StartProcessInstance)
-		instanceGroup.GET("/get", controller.GetProcessInstance)
-		instanceGroup.GET("/list", controller.ListProcessInstances)
-		instanceGroup.GET("/variable/get", controller.GetInstanceVariable)
-		instanceGroup.GET("/variable/list", controller.GetInstanceVariableList)
-		instanceGroup.POST("/variable/set", controller.GetProcessInstance)
-	}
-
-	taskGroup := r.Group("/api/task")
-	{
-		taskGroup.GET("/list", controller.ListTasks)
-	}
+	RegisterProcessDefinition(r)
+	RegisterProcessInstance(r)
 
 	return r
 }

@@ -42,6 +42,14 @@ func BadRequestWithMessage(c echo.Context, message interface{}) error {
 	return FailWithMsg(c, http.StatusBadRequest, message)
 }
 
+func InternalServerError(c echo.Context) error {
+	return FailWithMsg(c, http.StatusInternalServerError, "服务器内部错误")
+}
+
+func InternalServerErrorWithMessage(c echo.Context, message interface{}) error {
+	return FailWithMsg(c, http.StatusInternalServerError, message)
+}
+
 func Failed(c echo.Context, status int) error {
 	return FailWithMsg(c, status, "操作失败")
 }

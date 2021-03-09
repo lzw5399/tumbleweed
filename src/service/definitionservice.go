@@ -17,16 +17,32 @@ import (
 )
 
 type DefinitionService interface {
-	CreateProcess(*request.ProcessDefinitionRequest) (*model.ProcessDefinition, error)
+	CreateDefinition(*request.ProcessDefinitionRequest) (*model.ProcessDefinition, error)
 	Validate(*request.ProcessDefinitionRequest, uint) error
-	UpdateProcess(r *request.ProcessDefinitionRequest) error
+	UpdateDefinition(r *request.ProcessDefinitionRequest) error
+	DeleteDefinition(id uint) error
+	GetDefinition(id uint) (*model.ProcessDefinition, error)
+}
+
+func NewDefinitionService() *definitionService {
+	return &definitionService{}
 }
 
 type definitionService struct {
 }
 
-func NewDefinitionService() *definitionService {
-	return &definitionService{}
+func (d *definitionService) GetDefinition(id uint) (*model.ProcessDefinition, error) {
+	var definition model.ProcessDefinition
+
+	err := global.BankDb.
+		Where("id=?", id).
+		Find(&definition).Error
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("查询流程详情失败")
+	}
+
+	return &definition, nil
 }
 
 // 验证
@@ -47,7 +63,7 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 }
 
 // 创建新的process流程
-func (d *definitionService) CreateProcess(r *request.ProcessDefinitionRequest) (*model.ProcessDefinition, error) {
+func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest) (*model.ProcessDefinition, error) {
 	var (
 		err error
 	)
@@ -62,7 +78,8 @@ func (d *definitionService) CreateProcess(r *request.ProcessDefinitionRequest) (
 	return &processDefinition, nil
 }
 
-func (d *definitionService) UpdateProcess(r *request.ProcessDefinitionRequest) error {
+// 更新流程定义
+func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest) error {
 	processDefinition := r.ProcessDefinition()
 
 	err := global.BankDb.
@@ -80,4 +97,15 @@ func (d *definitionService) UpdateProcess(r *request.ProcessDefinitionRequest) e
 		}).Error
 
 	return err
+}
+
+// 删除流程定义
+func (d *definitionService) DeleteDefinition(id uint) error {
+	err := global.BankDb.Delete(model.ProcessDefinition{}, "id=?", id).Error
+
+	if err != nil {
+		return errors.New("流程不存在")
+	}
+
+	return nil
 }

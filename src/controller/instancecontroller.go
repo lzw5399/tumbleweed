@@ -17,17 +17,17 @@ import (
 )
 
 var (
-	instanceSvc service.InstanceService = service.NewInstanceService()
+	instanceService service.InstanceService = service.NewInstanceService()
 )
 
 // 创建新的实例
-func StartProcessInstance(c echo.Context) error {
-	var r request.InstanceRequest
+func CreateProcessInstance(c echo.Context) error {
+	var r request.ProcessInstanceRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
-	result, err := instanceSvc.Start(&r)
+	result, err := instanceService.CreateProcessInstance(&r)
 	if err != nil {
 		return response.FailWithMsg(c, int(result), err)
 	}
@@ -42,7 +42,7 @@ func GetProcessInstance(c echo.Context) error {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	instance, err := instanceSvc.Get(uint(id))
+	instance, err := instanceService.Get(uint(id))
 	if err != nil {
 		return response.Failed(c, http.StatusNotFound)
 	}
@@ -58,7 +58,7 @@ func ListProcessInstances(c echo.Context) error {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	instances, err := instanceSvc.List(&r)
+	instances, err := instanceService.List(&r)
 	if err != nil {
 		return response.Failed(c, http.StatusInternalServerError)
 	}
@@ -73,7 +73,7 @@ func GetInstanceVariable(c echo.Context) error {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	resp, err := instanceSvc.GetVariable(&r)
+	resp, err := instanceService.GetVariable(&r)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
@@ -86,7 +86,7 @@ func GetInstanceVariableList(c echo.Context) error {
 	if err := c.Bind(&r); err != nil {
 		return response.Failed(c, http.StatusBadRequest)
 	}
-	variables, err := instanceSvc.ListVariables(&r)
+	variables, err := instanceService.ListVariables(&r)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
