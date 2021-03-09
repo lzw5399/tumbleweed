@@ -12,6 +12,7 @@ import (
 	"workflow/src/global/response"
 	"workflow/src/model/request"
 	"workflow/src/service"
+	"workflow/src/util"
 
 	"github.com/labstack/echo/v4"
 )
@@ -27,7 +28,8 @@ func CreateProcessInstance(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	result, err := instanceService.CreateProcessInstance(&r)
+	currentUserId := util.GetCurrentUserId(c)
+	result, err := instanceService.CreateProcessInstance(&r, currentUserId)
 	if err != nil {
 		return response.FailWithMsg(c, int(result), err)
 	}

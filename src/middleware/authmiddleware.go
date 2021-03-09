@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"workflow/src/global/response"
+	"workflow/src/util"
 
 	"github.com/labstack/echo/v4"
 )
@@ -20,6 +21,11 @@ func Auth(next echo.HandlerFunc) echo.HandlerFunc {
 		if currentUserId == "" {
 			return response.FailWithMsg(c, http.StatusUnauthorized, "未指定当前用户")
 		}
+
+		if util.StringToUint(currentUserId) == 0 {
+			return response.FailWithMsg(c, http.StatusUnauthorized, "指定的当前用户不合法")
+		}
+
 		c.Set("currentUser", currentUserId)
 
 		return next(c)
