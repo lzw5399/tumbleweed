@@ -67,8 +67,8 @@ variables:
   #CI_DEBUG_TRACE: "true"
 
   CI_VERSIONPRE: 1.0.0
-  KUBERNETES_VERSION: 1.8.6
-  HELM_VERSION: 2.6.1
+  KUBERNETES_VERSION: 1.15.10
+  HELM_VERSION: 2.17.0
 
 
   DOCKER_API_VERSION: '1.39'
@@ -85,6 +85,7 @@ stages:
   - publish
   - performance
   - cleanup
+  - daily_commit
 
 
 
@@ -104,6 +105,15 @@ test:
   except:
     variables:
       - $TEST_DISABLED
+
+
+daily_commit:
+  stage: daily_commit
+  image: docker-insecure.sh.synyi.com/alpine-curl:3.8
+  script:
+    - curl -X GET "$TRIGGER_URL/api/TermSearch/DailyBuild" || true
+  only:
+    - triggers
 
 build:
   stage: build
@@ -132,7 +142,7 @@ code_quality:
     - setup_docker
     - code_quality
   artifacts:
-    paths: [ gl-code-quality-report.json ]
+    paths: [gl-code-quality-report.json]
   except:
     variables:
       - $CODE_QUALITY_DISABLED
@@ -148,7 +158,7 @@ license_management:
     - setup_docker
     - license_management
   artifacts:
-    paths: [ gl-license-management-report.json ]
+    paths: [gl-license-management-report.json]
   except:
     variables:
       - $LICENSE_MANAGEMENT_DISABLED
@@ -188,7 +198,7 @@ sast:
     - setup_docker
     - sast
   artifacts:
-    paths: [ gl-sast-report.json ]
+    paths: [gl-sast-report.json]
   except:
     variables:
       - $SAST_DISABLED
@@ -205,7 +215,7 @@ dependency_scanning:
     - setup_docker
     - dependency_scanning
   artifacts:
-    paths: [ gl-dependency-scanning-report.json ]
+    paths: [gl-dependency-scanning-report.json]
   except:
     variables:
       - $DEPENDENCY_SCANNING_DISABLED
@@ -222,7 +232,7 @@ container_scanning:
     - setup_docker
     - container_scanning
   artifacts:
-    paths: [ gl-container-scanning-report.json ]
+    paths: [gl-container-scanning-report.json]
   except:
     variables:
       - $CONTAINER_SCANNING_DISABLED
@@ -236,7 +246,7 @@ dast:
   script:
     - dast
   artifacts:
-    paths: [ gl-dast-report.json ]
+    paths: [gl-dast-report.json]
   only:
     refs:
       - branches
@@ -280,7 +290,7 @@ review:
     url: http://$KUBE_NAMESPACE-$CI_COMMIT_REF_SLUG.$AUTO_DEVOPS_DOMAIN
     on_stop: stop_review
   artifacts:
-    paths: [ environment_url.txt ]
+    paths: [environment_url.txt]
   only:
     refs:
       - branches
@@ -386,7 +396,7 @@ canary:
     name: production
     url: http://$CI_PROJECT_PATH_SLUG.$AUTO_DEVOPS_DOMAIN
   artifacts:
-    paths: [ environment_url.txt ]
+    paths: [environment_url.txt]
 
 production:
   <<: *production_template
@@ -421,7 +431,7 @@ production_manual:
     - "curl -X POST -F token=$PACK_DEPLOY_TOKEN -F variables[version]=$CI_COMMIT_SHA -F variables[name]=$PROJECT_NAME -F variables[branch]=$CI_COMMIT_REF_SLUG -F ref=$PACK_TARGET_BRANCH http://git.sy/api/v4/projects/${PACK_PROJECT_ID}/trigger/pipeline"
   variables:
     GIT_STRATEGY: none
-  dependencies: [ ]
+  dependencies: []
 
 package:
   <<: *package_template
@@ -477,7 +487,7 @@ publish-aws:
     name: production
     url: http://$CI_PROJECT_PATH_SLUG.$AUTO_DEVOPS_DOMAIN
   artifacts:
-    paths: [ environment_url.txt ]
+    paths: [environment_url.txt]
 
 rollout 10%:
   <<: *rollout_template
@@ -783,7 +793,7 @@ rollout 100%:
     echo "http://mirror.sy/alpine/v3.8/main/" > /etc/apk/repositories
     apk update
     apk add -U openssl curl tar gzip bash ca-certificates git python3
-    pip3 install pyyaml mako -i https://pypi-mirror.sh.synyi.com/simple
+    pip3 install pyyaml mako -i https://pypi-mirror.sh.synyi.com/simple 
     wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs-sgerrand.sh.synyi.com/sgerrand.rsa.pub
     wget https://github.sh.synyi.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk
     apk add glibc-2.23-r3.apk
@@ -870,7 +880,7 @@ rollout 100%:
       export APP_VERSION=${CI_VERSIONPRE}.${CI_PIPELINE_IID}${commit_branch}
       bash -c "declare -xp" > .ci_env
       echo "Building Dockerfile-based application..."
-      docker build -t "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG" . | ts -s
+      docker build -t "$CI_APPLICATION_REPOSITORY:$CI_APPLICATION_TAG" . | ts -s	
     else
       echo "Building Heroku-based application using gliderlabs/herokuish docker image..."
       docker run -i -e BUILDPACK_URL --name="$CI_CONTAINER_NAME" -v "$(pwd):/tmp/app:ro" gliderlabs/herokuish /bin/herokuish buildpack build
@@ -892,8 +902,10 @@ rollout 100%:
 
   function install_tiller() {
     echo "Checking Tiller..."
-    helm init --upgrade --tiller-image sapcc/tiller:v2.6.1
+    helm init --upgrade --tiller-image sapcc/tiller:v$HELM_VERSION
+    echo "init tiller done"
     kubectl rollout status -n "$TILLER_NAMESPACE" -w "deployment/tiller-deploy"
+    echo "kubectl rollout done"
     if ! helm version --debug; then
       echo "Failed to init Tiller."
       return 1
