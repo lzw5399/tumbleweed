@@ -17,8 +17,6 @@ func RegisterProcessInstance(r *echo.Echo) {
 		instanceGroup.POST("", controller.CreateProcessInstance)
 		instanceGroup.GET("/get", controller.GetProcessInstance)
 		instanceGroup.GET("/list", controller.ListProcessInstances)
-		instanceGroup.GET("/variable/get", controller.GetInstanceVariable)
-		instanceGroup.GET("/variable/list", controller.GetInstanceVariableList)
 		instanceGroup.POST("/variable/set", controller.GetProcessInstance)
 	}
 }

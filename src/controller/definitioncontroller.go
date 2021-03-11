@@ -33,7 +33,7 @@ func CreateProcessDefinition(c echo.Context) error {
 	}
 
 	// 验证
-	err = definitionService.Validate(&r, -1)
+	err = definitionService.Validate(&r, 0)
 	if err != nil {
 		return response.BadRequestWithMessage(c, err)
 	}

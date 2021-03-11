@@ -69,29 +69,29 @@ func ListProcessInstances(c echo.Context) error {
 }
 
 // 获取流程实例中的变量
-func GetInstanceVariable(c echo.Context) error {
-	var r request.GetVariableRequest
-	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
-	}
-
-	resp, err := instanceService.GetVariable(&r)
-	if err != nil {
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
-	}
-
-	return response.OkWithData(c, resp)
-}
-
-func GetInstanceVariableList(c echo.Context) error {
-	var r request.GetVariableListRequest
-	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
-	}
-	variables, err := instanceService.ListVariables(&r)
-	if err != nil {
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
-	}
-
-	return response.OkWithData(c, variables)
-}
+//func GetInstanceVariable(c echo.Context) error {
+//	var r request.GetVariableRequest
+//	if err := c.Bind(&r); err != nil {
+//		return response.Failed(c, http.StatusBadRequest)
+//	}
+//
+//	resp, err := instanceService.GetVariable(&r)
+//	if err != nil {
+//		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+//	}
+//
+//	return response.OkWithData(c, resp)
+//}
+//
+//func GetInstanceVariableList(c echo.Context) error {
+//	var r request.GetVariableListRequest
+//	if err := c.Bind(&r); err != nil {
+//		return response.Failed(c, http.StatusBadRequest)
+//	}
+//	variables, err := instanceService.ListVariables(&r)
+//	if err != nil {
+//		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+//	}
+//
+//	return response.OkWithData(c, variables)
+//}
