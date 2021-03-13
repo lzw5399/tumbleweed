@@ -8,7 +8,6 @@ package global
 import (
 	"workflow/src/config"
 
-	"github.com/go-redis/redis"
 	golog "github.com/op/go-logging"
 	"gorm.io/gorm"
 )
@@ -17,5 +16,4 @@ var (
 	BankConfig config.Config
 	BankLogger *golog.Logger
 	BankDb     *gorm.DB
-	BankRedis *redis.Client
 )

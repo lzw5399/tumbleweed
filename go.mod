@@ -3,7 +3,6 @@ module workflow
 go 1.16
 
 require (
-	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/jinzhu/configor v1.2.1
 	github.com/labstack/echo/v4 v4.1.17

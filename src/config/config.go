@@ -6,10 +6,9 @@
 package config
 
 type Config struct {
-	Log   Log   `yaml:"log"`
-	App   App   `yaml:"app"`
-	Db    Db    `yaml:"db"`
-	Redis Redis `yaml:"redis"`
+	Log Log `yaml:"log"`
+	App App `yaml:"app"`
+	Db  Db  `yaml:"db"`
 }
 
 type App struct {
@@ -30,9 +29,4 @@ type Db struct {
 type Log struct {
 	Prefix string `yaml:"prefix"`
 	Stdout string `yaml:"stdout"`
-}
-
-type Redis struct {
-	ConnStr string `yaml:"conn_str"`
-	Enabled bool   `yaml:"enabled"`
 }

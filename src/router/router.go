@@ -31,6 +31,7 @@ func Setup() *echo.Echo {
 		RegisterSwagger(r)
 	}
 
+	// apis
 	RegisterProcessDefinition(r)
 	RegisterProcessInstance(r)
 

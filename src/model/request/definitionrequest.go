@@ -42,5 +42,6 @@ func (p *ProcessDefinitionRequest) ProcessDefinition() model.ProcessDefinition {
 		SubmitCount: p.SubmitCount,
 		Notice:      p.Notice,
 		Remarks:     p.Remarks,
+		FormId:      p.FormId,
 	}
 }

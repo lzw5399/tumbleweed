@@ -39,7 +39,8 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		variableValue     []interface{} // 变量值
 		err               error
 		processDefinition model.ProcessDefinition // 流程模板
-		processState      ProcessState            // 流程模板中的Structure会反序列化成这个
+		processInstance   = r.ToProcessInstance(currentUserId)
+		processState      ProcessState // 流程模板中的Structure会反序列化成这个
 		processHandler    ProcessHandler
 		condExprStatus    bool
 		sourceEdges       []map[string]interface{}
@@ -47,7 +48,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	)
 
 	// 获取变量值
-	err = json.Unmarshal(r.State, &variableValue)
+	err = json.Unmarshal(processInstance.State, &variableValue)
 	if err != nil {
 		log.Error(err)
 		return 0, err
@@ -63,7 +64,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 开启事务
 	err = global.BankDb.Transaction(func(tx *gorm.DB) error {
 		// 查询对应的流程模板
-		err = tx.Where("id = ?", r.ProcessDefinitionId).Find(&processDefinition).Error
+		err = tx.Where("id = ?", processInstance.ProcessDefinitionId).Find(&processDefinition).Error
 		if err != nil {
 			return err
 		}
@@ -161,8 +162,68 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 			}
 		}
 
+		// 变量的预处理
+		err = preprocessVariables(variableValue, currentUserId)
+		if err != nil {
+			log.Error(err)
+			return errors.New("获取处理人变量值失败")
+		}
+
+		// 将最新的“变量/状态信息”赋值给processInstance
+		processInstance.State, err = json.Marshal(variableValue)
+		if err != nil {
+			return err
+		}
+
+		// processInstance某些字段更新
+		relatedPerson, _ := json.Marshal([]uint{currentUserId})
+		processInstance.RelatedPerson = relatedPerson
+
+		// 创建
+		err = tx.Create(&processInstance).Error
+		if err != nil {
+			return fmt.Errorf("创建工单失败，%v", err.Error())
+		}
+
+		// todo 省略了【创建工单模版关联数据】
+
+		// todo 省略了【获取当前用户信息】
+
+		// 创建历史记录
+		var stateList []interface{}
+		err = json.Unmarshal(processInstance.State, &stateList)
+		if err != nil {
+			return fmt.Errorf("json序列化失败，%s", err.Error())
+		}
+
+		err = tx.Create(&model.CirculationHistory{
+			Title:             processInstance.Title,
+			ProcessInstanceId: processInstance.Id,
+			State:             r.SourceState,
+			Source:            r.Source,
+			Target:            stateList[0].(map[string]interface{})["id"].(string),
+			Circulation:       "新建",
+			Processor:         "", // todo
+			ProcessorId:       currentUserId,
+		}).Error
+		if err != nil {
+			return fmt.Errorf("新建历史记录失败，%v", err.Error())
+		}
+
+		// 更新process_definition表的提交数量统计
+		err = tx.Model(&model.ProcessDefinition{}).
+			Where("id = ?", processInstance.ProcessDefinitionId).
+			Update("submit_count", processDefinition.SubmitCount+1).Error
+		if err != nil {
+			return fmt.Errorf("更新流程提交数量统计失败，%v", err.Error())
+		}
+
 		return nil
 	})
+
+	// todo 暂时省略了发送通知
+
+	// todo 暂时省略了执行脚本任务
 
 	return 0, err
 }

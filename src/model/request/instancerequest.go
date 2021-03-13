@@ -7,24 +7,38 @@ package request
 
 import (
 	"encoding/json"
+	"time"
 	"workflow/src/model"
 )
 
 type ProcessInstanceRequest struct {
 	model.ProcessInstance
-	FormId      int             `json:"formId" form:"formId"` // 表单的标识
 	SourceState string          `json:"sourceState"`
 	Tasks       json.RawMessage `json:"tasks"`
 	Source      string          `json:"source"`
 }
 
-//func (i *ProcessInstanceRequest) ProcessInstance(processId uint) model.ProcessInstance {
-//	return model.ProcessInstance{
-//		ProcessId:  processId,
-//		Variables:  util.StructToBytes(i.Variables),
-//		IsFinished: false,
-//	}
-//}
+func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint) model.ProcessInstance {
+	return model.ProcessInstance{
+		AuditableBase: model.AuditableBase{
+			EntityBase: model.EntityBase{
+				Id: i.Id,
+			},
+			CreateTime: time.Now(),
+			CreateBy:   currentUserId,
+		},
+		Title:               i.Title,
+		Priority:            i.Priority,
+		ProcessDefinitionId: i.ProcessDefinitionId,
+		Classify:            i.Classify,
+		IsEnd:               i.IsEnd,
+		IsDenied:            i.IsDenied,
+		State:               i.State,
+		RelatedPerson:       i.RelatedPerson,
+		UrgeCount:           i.UrgeCount,
+		UrgeLastTime:        i.UrgeLastTime,
+	}
+}
 
 type GetVariableRequest struct {
 	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty"`
