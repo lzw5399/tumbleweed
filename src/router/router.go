@@ -6,12 +6,11 @@
 package router
 
 import (
-	"workflow/src/controller"
-	"workflow/src/global"
-	customMiddleware "workflow/src/middleware"
-
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	"workflow/src/controller"
+	"workflow/src/global"
 )
 
 func Setup() *echo.Echo {
@@ -19,7 +18,6 @@ func Setup() *echo.Echo {
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recover())
 	r.Use(middleware.CORS())
-	r.Use(customMiddleware.Auth)
 
 	// probe
 	r.GET("/", controller.Index)

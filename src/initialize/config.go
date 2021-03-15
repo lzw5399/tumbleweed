@@ -39,7 +39,7 @@ func init() {
 }
 
 func getEnvCode() string {
-	envMode := os.Getenv("APPENV")
+	envMode := os.Getenv("APP_ENV")
 
 	if envMode == "Production" {
 		return "Production"

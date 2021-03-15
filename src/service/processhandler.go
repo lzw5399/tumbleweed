@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"time"
 
-	"workflow/src/model"
-
 	"gorm.io/gorm"
+
+	"workflow/src/model"
 )
 
 type ProcessHandler struct {

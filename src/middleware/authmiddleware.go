@@ -8,10 +8,10 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"workflow/src/global/response"
 	"workflow/src/util"
-
-	"github.com/labstack/echo/v4"
 )
 
 // 先使用此种方式传递当前用户的标识id

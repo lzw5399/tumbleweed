@@ -8,7 +8,6 @@ import (
 	// _ "bank/workflow/engine/src/docs"
 	_ "workflow/src/initialize"
 	"workflow/src/router"
-	_ "workflow/src/router"
 )
 
 func main() {
