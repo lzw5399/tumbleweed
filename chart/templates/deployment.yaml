@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: {{ template "trackableappname" . }}
@@ -11,12 +11,6 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ template "appname" . }}
-      track: "{{ .Values.application.track }}"
-      tier: "{{ .Values.application.tier }}"
-      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -60,3 +54,4 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
+
