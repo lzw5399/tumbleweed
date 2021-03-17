@@ -9,19 +9,19 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"workflow/src/global/response"
 	"workflow/src/model/request"
 	"workflow/src/service"
 	"workflow/src/util"
-
-	"github.com/labstack/echo/v4"
 )
 
 var (
 	definitionService service.DefinitionService = service.NewDefinitionService()
 )
 
-// @Tags ocr
+// @Tags process-definitions
 // @Summary 创建流程模板
 // @Accept  json
 // @Produce json

@@ -21,7 +21,7 @@ var (
 	instanceService service.InstanceService = service.NewInstanceService()
 )
 
-// @Tags ocr
+// @Tags process-instances
 // @Summary 创建新的流程实例
 // @Accept  json
 // @Produce json

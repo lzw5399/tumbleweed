@@ -3,7 +3,7 @@
  * @Date: 2021/3/10 18:59
  * @Desc: 读取模板节点数据
  */
-package service
+package engine
 
 import (
 	"encoding/json"
@@ -18,28 +18,38 @@ import (
 	"workflow/src/model"
 )
 
-type ProcessHandler struct {
-	cirHistoryList   []model.CirculationHistory
-	workOrderId      int
-	updateValue      map[string]interface{}
-	stateValue       map[string]interface{}
-	targetStateValue map[string]interface{}
-	WorkOrderData    [][]byte
-	processInstance  model.ProcessInstance // 流程实例
-	endHistory       bool
-	flowProperties   int
-	circulationValue string
-	processState     ProcessState
-	tx               *gorm.DB
+type ProcessEngine struct {
+	CirHistoryList      []model.CirculationHistory
+	WorkOrderId         int
+	UpdateValue         map[string]interface{}
+	StateValue          map[string]interface{}
+	TargetStateValue    map[string]interface{}
+	WorkOrderData       [][]byte
+	ProcessInstance     model.ProcessInstance // 流程实例
+	EndHistory          bool
+	FlowProperties      int
+	CirculationValue    string
+	DefinitionStructure DefinitionStructure // 流程模板结构
+	tx                  *gorm.DB
 }
 
-type ProcessState struct {
-	Structure map[string][]map[string]interface{}
+type DefinitionStructure map[string][]map[string]interface{}
+
+func NewProcessEngine(d model.ProcessDefinition) (*ProcessEngine, error) {
+	var definitionStructure DefinitionStructure
+	err := json.Unmarshal(d.Structure, &definitionStructure)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProcessEngine{
+		DefinitionStructure: definitionStructure,
+	}, nil
 }
 
 // 获取节点信息
-func (p *ProcessState) GetNode(stateId string) (nodeValue map[string]interface{}, err error) {
-	for _, node := range p.Structure["nodes"] {
+func (p *ProcessEngine) GetNode(stateId string) (nodeValue map[string]interface{}, err error) {
+	for _, node := range p.DefinitionStructure["nodes"] {
 		if node["id"] == stateId {
 			nodeValue = node
 		}
@@ -48,13 +58,13 @@ func (p *ProcessState) GetNode(stateId string) (nodeValue map[string]interface{}
 }
 
 // 获取流转信息
-func (p *ProcessState) GetEdge(stateId string, classify string) (edgeValue []map[string]interface{}, err error) {
+func (p *ProcessEngine) GetEdge(stateId string, classify string) (edgeValue []map[string]interface{}, err error) {
 	var (
 		leftSort  int
 		rightSort int
 	)
 
-	for _, edge := range p.Structure["edges"] {
+	for _, edge := range p.DefinitionStructure["edges"] {
 		if edge[classify] == stateId {
 			edgeValue = append(edgeValue, edge)
 		}
@@ -91,7 +101,7 @@ func fmtDuration(d time.Duration) string {
 }
 
 // 会签
-//func (h *ProcessHandler) Countersign(c echo.Context) (err error) {
+//func (h *ProcessEngine) Countersign(c echo.Context) (err error) {
 //	var (
 //		stateList       []map[string]interface{}
 //		stateIdMap      map[string]interface{}
@@ -101,7 +111,7 @@ func fmtDuration(d time.Duration) string {
 //		circulationStatus bool
 //	)
 //
-//	err = json.Unmarshal(h.processInstance.State, &stateList)
+//	err = json.Unmarshal(h.ProcessInstance.State, &stateList)
 //	if err != nil {
 //		return
 //	}
@@ -109,13 +119,13 @@ func fmtDuration(d time.Duration) string {
 //	stateIdMap = make(map[string]interface{})
 //	for _, v := range stateList {
 //		stateIdMap[v["id"].(string)] = v["label"]
-//		if v["id"].(string) == h.stateValue["id"].(string) {
+//		if v["id"].(string) == h.StateValue["id"].(string) {
 //			currentState = v
 //		}
 //	}
 //	userStatusCount := 0
 //	circulationStatus = false
-//	for _, cirHistoryValue := range h.cirHistoryList {
+//	for _, cirHistoryValue := range h.CirHistoryList {
 //		if len(currentState["processor"].([]interface{})) > 1 {
 //			if _, ok := stateIdMap[cirHistoryValue.Source]; !ok {
 //				break
@@ -138,7 +148,7 @@ func fmtDuration(d time.Duration) string {
 //		} else if currentState["process_method"].(string) == "role" || currentState["process_method"].(string) == "department" {
 //			// 全员处理
 //			var tmpUserList []system.SysUser
-//			if h.stateValue["fullHandle"].(bool) {
+//			if h.StateValue["fullHandle"].(bool) {
 //				db := orm.Eloquent.Model(&system.SysUser{})
 //				if currentState["process_method"].(string) == "role" {
 //					db = db.Where("role_id in (?)", currentState["processor"].([]interface{}))
@@ -187,7 +197,7 @@ func fmtDuration(d time.Duration) string {
 //					}
 //				}
 //			}
-//			if h.stateValue["fullHandle"].(bool) {
+//			if h.StateValue["fullHandle"].(bool) {
 //				if userStatusCount == len(tmpUserList)-1 {
 //					circulationStatus = true
 //				}
@@ -199,7 +209,7 @@ func fmtDuration(d time.Duration) string {
 //		}
 //	}
 //	if circulationStatus {
-//		h.endHistory = true
+//		h.EndHistory = true
 //		err = h.circulation()
 //		if err != nil {
 //			return
@@ -209,30 +219,30 @@ func fmtDuration(d time.Duration) string {
 //}
 
 // 工单跳转
-//func (h *ProcessHandler) circulation() (err error) {
+//func (h *ProcessEngine) circulation() (err error) {
 //	var (
-//		stateValue []byte
+//		StateValue []byte
 //	)
 //
 //	stateList := make([]interface{}, 0)
-//	for _, v := range h.updateValue["state"].([]map[string]interface{}) {
+//	for _, v := range h.UpdateValue["state"].([]map[string]interface{}) {
 //		stateList = append(stateList, v)
 //	}
-//	err = GetVariableValue(stateList, h.processInstance.Creator)
+//	err = GetVariableValue(stateList, h.ProcessInstance.Creator)
 //	if err != nil {
 //		return
 //	}
 //
-//	stateValue, err = json.Marshal(h.updateValue["state"])
+//	StateValue, err = json.Marshal(h.UpdateValue["state"])
 //	if err != nil {
 //		return
 //	}
 //
 //	err = h.tx.Model(&process.WorkOrderInfo{}).
-//		Where("id = ?", h.workOrderId).
+//		Where("id = ?", h.WorkOrderId).
 //		Updates(map[string]interface{}{
-//			"state":          stateValue,
-//			"related_person": h.updateValue["related_person"],
+//			"state":          StateValue,
+//			"related_person": h.UpdateValue["related_person"],
 //		}).Error
 //	if err != nil {
 //		h.tx.Rollback()
@@ -240,9 +250,9 @@ func fmtDuration(d time.Duration) string {
 //	}
 //
 //	// 如果是跳转到结束节点，则需要修改节点状态
-//	if h.targetStateValue["clazz"] == "end" {
+//	if h.TargetStateValue["clazz"] == "end" {
 //		err = h.tx.Model(&process.WorkOrderInfo{}).
-//			Where("id = ?", h.workOrderId).
+//			Where("id = ?", h.WorkOrderId).
 //			Update("is_end", 1).Error
 //		if err != nil {
 //			h.tx.Rollback()
@@ -254,7 +264,7 @@ func fmtDuration(d time.Duration) string {
 //}
 
 // 条件判断
-func (h *ProcessHandler) ConditionalJudgment(condExpr map[string]interface{}) (result bool, err error) {
+func (p *ProcessEngine) ConditionalJudgment(condExpr map[string]interface{}) (result bool, err error) {
 	var (
 		condExprOk    bool
 		condExprValue interface{}
@@ -274,7 +284,7 @@ func (h *ProcessHandler) ConditionalJudgment(condExpr map[string]interface{}) (r
 		}
 	}()
 
-	for _, data := range h.WorkOrderData {
+	for _, data := range p.WorkOrderData {
 		var formData map[string]interface{}
 		err = json.Unmarshal(data, &formData)
 		if err != nil {
@@ -358,19 +368,19 @@ func (h *ProcessHandler) ConditionalJudgment(condExpr map[string]interface{}) (r
 }
 
 // 并行网关，确认其他节点是否完成
-func (h *ProcessHandler) completeAllParallel(target string) (statusOk bool, err error) {
+func (p *ProcessEngine) completeAllParallel(target string) (statusOk bool, err error) {
 	var (
 		stateList []map[string]interface{}
 	)
 
-	err = json.Unmarshal(h.processInstance.State, &stateList)
+	err = json.Unmarshal(p.ProcessInstance.State, &stateList)
 	if err != nil {
 		err = fmt.Errorf("反序列化失败，%v", err.Error())
 		return
 	}
 
 continueHistoryTag:
-	for _, v := range h.cirHistoryList {
+	for _, v := range p.CirHistoryList {
 		status := false
 		for i, s := range stateList {
 			if v.Source == s["id"].(string) && v.Target == target {
@@ -384,16 +394,16 @@ continueHistoryTag:
 		}
 	}
 
-	if len(stateList) == 1 && stateList[0]["id"].(string) == h.stateValue["id"] {
+	if len(stateList) == 1 && stateList[0]["id"].(string) == p.StateValue["id"] {
 		statusOk = true
 	}
 
 	return
 }
 
-//func (h *ProcessHandler) commonProcessing(c echo.Context) (err error) {
+//func (h *ProcessEngine) commonProcessing(c echo.Context) (err error) {
 //	// 如果是拒绝的流转则直接跳转
-//	if h.flowProperties == 0 {
+//	if h.FlowProperties == 0 {
 //		err = h.circulation()
 //		if err != nil {
 //			err = fmt.Errorf("工单跳转失败，%v", err.Error())
@@ -402,10 +412,10 @@ continueHistoryTag:
 //	}
 //
 //	// 会签
-//	if h.stateValue["assignValue"] != nil && len(h.stateValue["assignValue"].([]interface{})) > 0 {
-//		if isCounterSign, ok := h.stateValue["isCounterSign"]; ok {
+//	if h.StateValue["assignValue"] != nil && len(h.StateValue["assignValue"].([]interface{})) > 0 {
+//		if isCounterSign, ok := h.StateValue["isCounterSign"]; ok {
 //			if isCounterSign.(bool) {
-//				h.endHistory = false
+//				h.EndHistory = false
 //				err = h.Countersign(c)
 //				if err != nil {
 //					return
@@ -431,20 +441,20 @@ continueHistoryTag:
 //	return
 //}
 
-//func (h *ProcessHandler) HandleWorkOrder(
+//func (h *ProcessEngine) HandleWorkOrder(
 //	c echo.Context,
-//	workOrderId int,
+//	WorkOrderId int,
 //	tasks []string,
 //	targetState string,
 //	sourceState string,
-//	circulationValue string,
-//	flowProperties int,
+//	CirculationValue string,
+//	FlowProperties int,
 //	remarks string,
 //	tpls []map[string]interface{},
 //) (err error) {
-//	h.workOrderId = workOrderId
-//	h.flowProperties = flowProperties
-//	h.endHistory = true
+//	h.WorkOrderId = WorkOrderId
+//	h.FlowProperties = FlowProperties
+//	h.EndHistory = true
 //
 //	var (
 //		execTasks          []string
@@ -486,7 +496,7 @@ continueHistoryTag:
 //	}()
 //
 //	// 获取工单信息
-//	err = orm.Eloquent.Model(&process.WorkOrderInfo{}).Where("id = ?", workOrderId).Find(&h.workOrderDetails).Error
+//	err = orm.Eloquent.Model(&process.WorkOrderInfo{}).Where("id = ?", WorkOrderId).Find(&h.workOrderDetails).Error
 //	if err != nil {
 //		return
 //	}
@@ -496,26 +506,26 @@ continueHistoryTag:
 //	if err != nil {
 //		return
 //	}
-//	err = json.Unmarshal(processInfo.Structure, &h.processState.Structure)
+//	err = json.Unmarshal(processInfo.Structure, &h.DefinitionStructure.Structure)
 //	if err != nil {
 //		return
 //	}
 //
 //	// 获取当前节点
-//	h.stateValue, err = h.processState.GetNode(sourceState)
+//	h.StateValue, err = h.DefinitionStructure.GetNode(sourceState)
 //	if err != nil {
 //		return
 //	}
 //
 //	// 目标状态
-//	h.targetStateValue, err = h.processState.GetNode(targetState)
+//	h.TargetStateValue, err = h.DefinitionStructure.GetNode(targetState)
 //	if err != nil {
 //		return
 //	}
 //
 //	// 获取工单数据
 //	err = orm.Eloquent.Model(&process.TplData{}).
-//		Where("work_order = ?", workOrderId).
+//		Where("work_order = ?", WorkOrderId).
 //		Pluck("form_data", &h.WorkOrderData).Error
 //	if err != nil {
 //		return
@@ -523,9 +533,9 @@ continueHistoryTag:
 //
 //	// 根据处理人查询出需要会签的条数
 //	err = orm.Eloquent.Model(&process.CirculationHistory{}).
-//		Where("work_order = ?", workOrderId).
+//		Where("work_order = ?", WorkOrderId).
 //		Order("id desc").
-//		Find(&h.cirHistoryList).Error
+//		Find(&h.CirHistoryList).Error
 //	if err != nil {
 //		return
 //	}
@@ -550,22 +560,22 @@ continueHistoryTag:
 //		return
 //	}
 //
-//	h.updateValue = map[string]interface{}{
+//	h.UpdateValue = map[string]interface{}{
 //		"related_person": relatedPersonValue,
 //	}
 //
 //	// 开启事务
 //	h.tx = orm.Eloquent.Begin()
 //
-//	stateValue := map[string]interface{}{
-//		"label": h.targetStateValue["label"].(string),
-//		"id":    h.targetStateValue["id"].(string),
+//	StateValue := map[string]interface{}{
+//		"label": h.TargetStateValue["label"].(string),
+//		"id":    h.TargetStateValue["id"].(string),
 //	}
 //
-//	switch h.targetStateValue["clazz"] {
+//	switch h.TargetStateValue["clazz"] {
 //	// 排他网关
 //	case "exclusiveGateway":
-//		sourceEdges, err = h.processState.GetEdge(h.targetStateValue["id"].(string), "source")
+//		sourceEdges, err = h.DefinitionStructure.GetEdge(h.TargetStateValue["id"].(string), "source")
 //		if err != nil {
 //			return
 //		}
@@ -584,23 +594,23 @@ continueHistoryTag:
 //				}
 //				if condExprStatus {
 //					// 进行节点跳转
-//					h.targetStateValue, err = h.processState.GetNode(edge["target"].(string))
+//					h.TargetStateValue, err = h.DefinitionStructure.GetNode(edge["target"].(string))
 //					if err != nil {
 //						return
 //					}
 //
-//					if h.targetStateValue["clazz"] == "userTask" || h.targetStateValue["clazz"] == "receiveTask" {
-//						if h.targetStateValue["assignValue"] == nil || h.targetStateValue["assignType"] == "" {
+//					if h.TargetStateValue["clazz"] == "userTask" || h.TargetStateValue["clazz"] == "receiveTask" {
+//						if h.TargetStateValue["assignValue"] == nil || h.TargetStateValue["assignType"] == "" {
 //							err = errors.New("处理人不能为空")
 //							return
 //						}
 //					}
 //
-//					h.updateValue["state"] = []map[string]interface{}{{
-//						"id":             h.targetStateValue["id"].(string),
-//						"label":          h.targetStateValue["label"],
-//						"processor":      h.targetStateValue["assignValue"],
-//						"process_method": h.targetStateValue["assignType"],
+//					h.UpdateValue["state"] = []map[string]interface{}{{
+//						"id":             h.TargetStateValue["id"].(string),
+//						"label":          h.TargetStateValue["label"],
+//						"processor":      h.TargetStateValue["assignValue"],
+//						"process_method": h.TargetStateValue["assignType"],
 //					}}
 //					err = h.commonProcessing(c)
 //					if err != nil {
@@ -619,20 +629,20 @@ continueHistoryTag:
 //	// 并行/聚合网关
 //	case "parallelGateway":
 //		// 入口，判断
-//		sourceEdges, err = h.processState.GetEdge(h.targetStateValue["id"].(string), "source")
+//		sourceEdges, err = h.DefinitionStructure.GetEdge(h.TargetStateValue["id"].(string), "source")
 //		if err != nil {
 //			err = fmt.Errorf("查询流转信息失败，%v", err.Error())
 //			return
 //		}
 //
-//		targetEdges, err = h.processState.GetEdge(h.targetStateValue["id"].(string), "target")
+//		targetEdges, err = h.DefinitionStructure.GetEdge(h.TargetStateValue["id"].(string), "target")
 //		if err != nil {
 //			err = fmt.Errorf("查询流转信息失败，%v", err.Error())
 //			return
 //		}
 //
 //		if len(sourceEdges) > 0 {
-//			h.targetStateValue, err = h.processState.GetNode(sourceEdges[0]["target"].(string))
+//			h.TargetStateValue, err = h.DefinitionStructure.GetNode(sourceEdges[0]["target"].(string))
 //			if err != nil {
 //				return
 //			}
@@ -643,17 +653,17 @@ continueHistoryTag:
 //
 //		if len(sourceEdges) > 1 && len(targetEdges) == 1 {
 //			// 入口
-//			h.updateValue["state"] = make([]map[string]interface{}, 0)
+//			h.UpdateValue["state"] = make([]map[string]interface{}, 0)
 //			for _, edge := range sourceEdges {
-//				targetStateValue, err := h.processState.GetNode(edge["target"].(string))
+//				TargetStateValue, err := h.DefinitionStructure.GetNode(edge["target"].(string))
 //				if err != nil {
 //					return err
 //				}
-//				h.updateValue["state"] = append(h.updateValue["state"].([]map[string]interface{}), map[string]interface{}{
+//				h.UpdateValue["state"] = append(h.UpdateValue["state"].([]map[string]interface{}), map[string]interface{}{
 //					"id":             edge["target"].(string),
-//					"label":          targetStateValue["label"],
-//					"processor":      targetStateValue["assignValue"],
-//					"process_method": targetStateValue["assignType"],
+//					"label":          TargetStateValue["label"],
+//					"processor":      TargetStateValue["assignValue"],
+//					"process_method": TargetStateValue["assignType"],
 //				})
 //			}
 //			err = h.circulation()
@@ -669,20 +679,20 @@ continueHistoryTag:
 //				return
 //			}
 //			if parallelStatusOk {
-//				h.endHistory = true
-//				endAssignValue, ok := h.targetStateValue["assignValue"]
+//				h.EndHistory = true
+//				endAssignValue, ok := h.TargetStateValue["assignValue"]
 //				if !ok {
 //					endAssignValue = []int{}
 //				}
 //
-//				endAssignType, ok := h.targetStateValue["assignType"]
+//				endAssignType, ok := h.TargetStateValue["assignType"]
 //				if !ok {
 //					endAssignType = ""
 //				}
 //
-//				h.updateValue["state"] = []map[string]interface{}{{
-//					"id":             h.targetStateValue["id"].(string),
-//					"label":          h.targetStateValue["label"],
+//				h.UpdateValue["state"] = []map[string]interface{}{{
+//					"id":             h.TargetStateValue["id"].(string),
+//					"label":          h.TargetStateValue["label"],
 //					"processor":      endAssignValue,
 //					"process_method": endAssignType,
 //				}}
@@ -692,7 +702,7 @@ continueHistoryTag:
 //					return
 //				}
 //			} else {
-//				h.endHistory = false
+//				h.EndHistory = false
 //			}
 //
 //		} else {
@@ -703,37 +713,37 @@ continueHistoryTag:
 //	case "inclusiveGateway":
 //		return
 //	case "start":
-//		stateValue["processor"] = []int{h.workOrderDetails.Creator}
-//		stateValue["process_method"] = "person"
-//		h.updateValue["state"] = []map[string]interface{}{stateValue}
+//		StateValue["processor"] = []int{h.workOrderDetails.Creator}
+//		StateValue["process_method"] = "person"
+//		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
 //		err = h.circulation()
 //		if err != nil {
 //			return
 //		}
 //	case "userTask":
-//		stateValue["processor"] = h.targetStateValue["assignValue"].([]interface{})
-//		stateValue["process_method"] = h.targetStateValue["assignType"].(string)
-//		h.updateValue["state"] = []map[string]interface{}{stateValue}
+//		StateValue["processor"] = h.TargetStateValue["assignValue"].([]interface{})
+//		StateValue["process_method"] = h.TargetStateValue["assignType"].(string)
+//		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
 //		err = h.commonProcessing(c)
 //		if err != nil {
 //			return
 //		}
 //	case "receiveTask":
-//		stateValue["processor"] = h.targetStateValue["assignValue"].([]interface{})
-//		stateValue["process_method"] = h.targetStateValue["assignType"].(string)
-//		h.updateValue["state"] = []map[string]interface{}{stateValue}
+//		StateValue["processor"] = h.TargetStateValue["assignValue"].([]interface{})
+//		StateValue["process_method"] = h.TargetStateValue["assignType"].(string)
+//		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
 //		err = h.commonProcessing(c)
 //		if err != nil {
 //			return
 //		}
 //	case "scriptTask":
-//		stateValue["processor"] = []int{}
-//		stateValue["process_method"] = ""
-//		h.updateValue["state"] = []map[string]interface{}{stateValue}
+//		StateValue["processor"] = []int{}
+//		StateValue["process_method"] = ""
+//		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
 //	case "end":
-//		stateValue["processor"] = []int{}
-//		stateValue["process_method"] = ""
-//		h.updateValue["state"] = []map[string]interface{}{stateValue}
+//		StateValue["processor"] = []int{}
+//		StateValue["process_method"] = ""
+//		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
 //		err = h.commonProcessing(c)
 //		if err != nil {
 //			return
@@ -755,14 +765,14 @@ continueHistoryTag:
 //
 //		// 是否可写，只有可写的模版可以更新数据
 //		updateStatus := false
-//		if h.stateValue["clazz"].(string) == "start" {
+//		if h.StateValue["clazz"].(string) == "start" {
 //			updateStatus = true
-//		} else if writeTplList, writeOK := h.stateValue["writeTpls"]; writeOK {
+//		} else if writeTplList, writeOK := h.StateValue["writeTpls"]; writeOK {
 //		tplListTag:
 //			for _, writeTplId := range writeTplList.([]interface{}) {
 //				if writeTplId == t["tplId"] { // 可写
 //					// 是否隐藏，隐藏的模版无法修改数据
-//					if hideTplList, hideOK := h.stateValue["hideTpls"]; hideOK {
+//					if hideTplList, hideOK := h.StateValue["hideTpls"]; hideOK {
 //						if hideTplList != nil && len(hideTplList.([]interface{})) > 0 {
 //							for _, hideTplId := range hideTplList.([]interface{}) {
 //								if hideTplId == t["tplId"] { // 隐藏的
@@ -795,7 +805,7 @@ continueHistoryTag:
 //
 //	// 流转历史写入
 //	err = orm.Eloquent.Model(&cirHistoryValue).
-//		Where("work_order = ?", workOrderId).
+//		Where("work_order = ?", WorkOrderId).
 //		Find(&cirHistoryValue).
 //		Order("create_time desc").Error
 //	if err != nil {
@@ -803,7 +813,7 @@ continueHistoryTag:
 //		return
 //	}
 //	for _, t := range cirHistoryValue {
-//		if t.Source != h.stateValue["id"] {
+//		if t.Source != h.StateValue["id"] {
 //			costDuration := time.Since(t.CreatedAt.Time)
 //			costDurationValue = fmtDuration(costDuration)
 //		}
@@ -821,10 +831,10 @@ continueHistoryTag:
 //		Model:        base.Model{},
 //		Title:        h.workOrderDetails.Title,
 //		WorkOrder:    h.workOrderDetails.Id,
-//		State:        h.stateValue["label"].(string),
-//		Source:       h.stateValue["id"].(string),
-//		Target:       h.targetStateValue["id"].(string),
-//		Circulation:  circulationValue,
+//		State:        h.StateValue["label"].(string),
+//		Source:       h.StateValue["id"].(string),
+//		Target:       h.TargetStateValue["id"].(string),
+//		Circulation:  CirculationValue,
 //		Processor:    currentUserInfo.NickName,
 //		ProcessorId:  tools.GetUserId(c),
 //		CostDuration: costDurationValue,
@@ -858,15 +868,15 @@ continueHistoryTag:
 //	}
 //
 //	// 判断目标是否是结束节点
-//	if h.targetStateValue["clazz"] == "end" && h.endHistory == true {
+//	if h.TargetStateValue["clazz"] == "end" && h.EndHistory == true {
 //		sendSubject = "您的工单已处理完成"
 //		sendDescription = "您的工单已处理完成，工单描述如下"
 //		err = h.tx.Create(&process.CirculationHistory{
 //			Model:       base.Model{},
 //			Title:       h.workOrderDetails.Title,
 //			WorkOrder:   h.workOrderDetails.Id,
-//			State:       h.targetStateValue["label"].(string),
-//			Source:      h.targetStateValue["id"].(string),
+//			State:       h.TargetStateValue["label"].(string),
+//			Source:      h.TargetStateValue["id"].(string),
 //			Processor:   currentUserInfo.NickName,
 //			ProcessorId: tools.GetUserId(c),
 //			Circulation: "结束",
@@ -906,7 +916,7 @@ continueHistoryTag:
 //	// 发送通知
 //	if len(noticeList) > 0 {
 //		stateList := make([]interface{}, 0)
-//		for _, v := range h.updateValue["state"].([]map[string]interface{}) {
+//		for _, v := range h.UpdateValue["state"].([]map[string]interface{}) {
 //			stateList = append(stateList, v)
 //		}
 //		sendToUserList, err = GetPrincipalUserInfo(stateList, h.workOrderDetails.Creator)
@@ -930,8 +940,8 @@ continueHistoryTag:
 //	}
 //
 //	// 执行流程公共任务及节点任务
-//	if h.stateValue["task"] != nil {
-//		for _, task := range h.stateValue["task"].([]interface{}) {
+//	if h.StateValue["task"] != nil {
+//		for _, task := range h.StateValue["task"].([]interface{}) {
 //			tasks = append(tasks, task.(string))
 //		}
 //	}

@@ -33,7 +33,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "ocr"
+                    "process-definitions"
                 ],
                 "summary": "创建流程模板",
                 "parameters": [
@@ -73,7 +73,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "ocr"
+                    "process-instances"
                 ],
                 "summary": "创建新的流程实例",
                 "parameters": [

@@ -89,7 +89,7 @@ paths:
             $ref: '#/definitions/response.HttpResponse'
       summary: 创建流程模板
       tags:
-      - ocr
+      - process-definitions
   /api/process-instances:
     post:
       consumes:
@@ -115,5 +115,5 @@ paths:
             $ref: '#/definitions/response.HttpResponse'
       summary: 创建新的流程实例
       tags:
-      - ocr
+      - process-instances
 swagger: "2.0"
