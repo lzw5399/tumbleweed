@@ -5,9 +5,8 @@
  */
 package model
 
-
 // 流程分类
 type Classify struct {
 	AuditableBase
-	Name    string `json:"name" form:"name"`     // 分类名称
+	Name string `json:"name" form:"name"` // 分类名称
 }

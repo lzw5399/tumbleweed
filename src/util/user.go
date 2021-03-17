@@ -5,8 +5,15 @@
  */
 package util
 
-import "github.com/labstack/echo/v4"
+import (
+	"strconv"
+
+	"github.com/labstack/echo/v4"
+)
 
 func GetCurrentUserId(c echo.Context) uint {
-	return c.Get("currentUser").(uint)
+	u := c.Get("currentUser").(string)
+	i, _ := strconv.Atoi(u)
+
+	return uint(i)
 }

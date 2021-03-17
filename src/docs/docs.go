@@ -39,12 +39,59 @@ var doc = `{
                 "parameters": [
                     {
                         "description": "request",
-                        "name": "file",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/request.ProcessDefinitionRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "current-user",
+                        "name": "current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/process-instances": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ocr"
+                ],
+                "summary": "创建新的流程实例",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ProcessInstanceRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "current-user",
+                        "name": "current-user",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -70,10 +117,6 @@ var doc = `{
                     "description": "对应的表单的id(仅对外部系统做一个标记)",
                     "type": "integer"
                 },
-                "icon": {
-                    "description": "流程标签",
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -95,6 +138,44 @@ var doc = `{
                 },
                 "task": {
                     "description": "任务ID, array, 可执行多个任务，可以当成通知任务，每个节点都会去执行",
+                    "type": "string"
+                }
+            }
+        },
+        "request.ProcessInstanceRequest": {
+            "type": "object",
+            "properties": {
+                "classify": {
+                    "description": "分类ID",
+                    "type": "integer"
+                },
+                "priority": {
+                    "description": "工单优先级 1，正常 2，紧急 3，非常紧急",
+                    "type": "integer"
+                },
+                "processDefinitionId": {
+                    "description": "流程ID",
+                    "type": "integer"
+                },
+                "relatedPerson": {
+                    "description": "工单所有处理人",
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "sourceState": {
+                    "type": "string"
+                },
+                "state": {
+                    "description": "状态信息",
+                    "type": "string"
+                },
+                "tasks": {
+                    "type": "string"
+                },
+                "title": {
+                    "description": "工单标题",
                     "type": "string"
                 }
             }

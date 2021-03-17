@@ -7,14 +7,19 @@ package router
 
 import (
 	"net/http"
+	"path"
 
 	"github.com/labstack/echo/v4"
 	"github.com/swaggo/echo-swagger"
 )
 
+const (
+	_SWAGGER_BASE_PATH = "/api/wf/swagger"
+)
+
 func RegisterSwagger(r *echo.Echo) {
-	r.GET("/api/wf/swagger/*", echoSwagger.WrapHandler)
-	r.GET("/api/wf/swagger", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/api/wf/swagger/index.html")
+	r.GET(path.Join(_SWAGGER_BASE_PATH, "/*"), echoSwagger.WrapHandler)
+	r.GET(_SWAGGER_BASE_PATH, func(c echo.Context) error {
+		return c.Redirect(http.StatusMovedPermanently, path.Join(_SWAGGER_BASE_PATH, "index.html"))
 	})
 }

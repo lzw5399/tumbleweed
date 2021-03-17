@@ -7,9 +7,6 @@ definitions:
       formId:
         description: 对应的表单的id(仅对外部系统做一个标记)
         type: integer
-      icon:
-        description: 流程标签
-        type: string
       id:
         type: integer
       name:
@@ -26,6 +23,33 @@ definitions:
         type: string
       task:
         description: 任务ID, array, 可执行多个任务，可以当成通知任务，每个节点都会去执行
+        type: string
+    type: object
+  request.ProcessInstanceRequest:
+    properties:
+      classify:
+        description: 分类ID
+        type: integer
+      priority:
+        description: 工单优先级 1，正常 2，紧急 3，非常紧急
+        type: integer
+      processDefinitionId:
+        description: 流程ID
+        type: integer
+      relatedPerson:
+        description: 工单所有处理人
+        type: string
+      source:
+        type: string
+      sourceState:
+        type: string
+      state:
+        description: 状态信息
+        type: string
+      tasks:
+        type: string
+      title:
+        description: 工单标题
         type: string
     type: object
   response.HttpResponse:
@@ -47,10 +71,15 @@ paths:
       parameters:
       - description: request
         in: body
-        name: file
+        name: request
         required: true
         schema:
           $ref: '#/definitions/request.ProcessDefinitionRequest'
+      - description: current-user
+        in: header
+        name: current-user
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -59,6 +88,32 @@ paths:
           schema:
             $ref: '#/definitions/response.HttpResponse'
       summary: 创建流程模板
+      tags:
+      - ocr
+  /api/process-instances:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ProcessInstanceRequest'
+      - description: current-user
+        in: header
+        name: current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 创建新的流程实例
       tags:
       - ocr
 swagger: "2.0"

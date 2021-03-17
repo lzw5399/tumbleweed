@@ -11,6 +11,7 @@ require (
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/swaggo/echo-swagger v1.1.0
 	github.com/swaggo/swag v1.7.0
+	gorm.io/datatypes v1.0.0
 	gorm.io/driver/postgres v1.0.6
 	gorm.io/gorm v1.20.11
 )

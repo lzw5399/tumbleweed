@@ -21,7 +21,14 @@ var (
 	instanceService service.InstanceService = service.NewInstanceService()
 )
 
-// 创建新的实例
+// @Tags ocr
+// @Summary 创建新的流程实例
+// @Accept  json
+// @Produce json
+// @param request body request.ProcessInstanceRequest true "request"
+// @param current-user header string true "current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances [post]
 func CreateProcessInstance(c echo.Context) error {
 	var r request.ProcessInstanceRequest
 	if err := c.Bind(&r); err != nil {

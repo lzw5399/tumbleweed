@@ -25,7 +25,8 @@ var (
 // @Summary 创建流程模板
 // @Accept  json
 // @Produce json
-// @param file body request.ProcessDefinitionRequest true "request"
+// @param request body request.ProcessDefinitionRequest true "request"
+// @param current-user header string true "current-user"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-definitions [post]
 func CreateProcessDefinition(c echo.Context) error {
