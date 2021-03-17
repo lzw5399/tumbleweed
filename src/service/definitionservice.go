@@ -18,7 +18,7 @@ import (
 )
 
 type DefinitionService interface {
-	CreateDefinition(*request.ProcessDefinitionRequest) (*model.ProcessDefinition, error)
+	CreateDefinition(*request.ProcessDefinitionRequest, uint) (*model.ProcessDefinition, error)
 	Validate(*request.ProcessDefinitionRequest, uint) error
 	UpdateDefinition(r *request.ProcessDefinitionRequest) error
 	DeleteDefinition(id uint) error
@@ -64,12 +64,13 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 }
 
 // 创建新的process流程
-func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest) (*model.ProcessDefinition, error) {
+func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint) (*model.ProcessDefinition, error) {
 	var (
 		err error
 	)
 
 	processDefinition := r.ProcessDefinition()
+	processDefinition.CreateBy = currentUserId
 
 	if err = global.BankDb.Create(&processDefinition).Error; err != nil {
 		log.Error(err)

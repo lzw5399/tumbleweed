@@ -22,7 +22,7 @@ type Db struct {
 	Database    string `yaml:"database"`
 	Username    string `yaml:"username"`
 	Password    string `yaml:"password"`
-	LogMode     bool   `yaml:"logmode"`
+	LogMode     bool   `yaml:"log_mode"`
 	AutoMigrate bool   `yaml:"auto_migrate"`
 }
 

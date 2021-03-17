@@ -21,7 +21,13 @@ var (
 	definitionService service.DefinitionService = service.NewDefinitionService()
 )
 
-// 创建流程process
+// @Tags ocr
+// @Summary 创建流程模板
+// @Accept  json
+// @Produce json
+// @param file body request.ProcessDefinitionRequest true "request"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-definitions [post]
 func CreateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -39,7 +45,8 @@ func CreateProcessDefinition(c echo.Context) error {
 	}
 
 	// 创建
-	processDefinition, err := definitionService.CreateDefinition(&r)
+	currentUserId := util.GetCurrentUserId(c)
+	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId)
 	if err != nil {
 		log.Printf("CreateProcess错误，原因: %s", err.Error())
 		return response.Failed(c, http.StatusInternalServerError)

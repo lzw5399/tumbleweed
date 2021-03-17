@@ -9,3 +9,5 @@ appsettings.*.yaml
 *.pdf
 *.png
 node_modules/
+workflow
+workflow.exe

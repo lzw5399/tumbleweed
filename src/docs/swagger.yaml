@@ -1,0 +1,64 @@
+definitions:
+  request.ProcessDefinitionRequest:
+    properties:
+      classifyId:
+        description: 分类ID
+        type: integer
+      formId:
+        description: 对应的表单的id(仅对外部系统做一个标记)
+        type: integer
+      icon:
+        description: 流程标签
+        type: string
+      id:
+        type: integer
+      name:
+        description: 流程名称
+        type: string
+      notice:
+        description: 绑定通知
+        type: string
+      remarks:
+        description: 流程备注
+        type: string
+      structure:
+        description: 流程结构
+        type: string
+      task:
+        description: 任务ID, array, 可执行多个任务，可以当成通知任务，每个节点都会去执行
+        type: string
+    type: object
+  response.HttpResponse:
+    properties:
+      data:
+        type: object
+      message:
+        type: object
+      success:
+        type: boolean
+    type: object
+info:
+  contact: {}
+paths:
+  /api/process-definitions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: file
+        required: true
+        schema:
+          $ref: '#/definitions/request.ProcessDefinitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 创建流程模板
+      tags:
+      - ocr
+swagger: "2.0"
