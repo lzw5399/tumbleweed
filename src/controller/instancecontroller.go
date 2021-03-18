@@ -69,6 +69,28 @@ func ListProcessInstances(c echo.Context) error {
 	return response.OkWithData(c, instances)
 }
 
+// @Tags process-instances
+// @Summary 处理/审批一个流程
+// @Accept  json
+// @Produce json
+// @param request body request.HandleInstancesRequest true "request"
+// @param current-user header string true "current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances/_handle [POST]
+func HandleProcessInstance(c echo.Context) error {
+	var r request.HandleInstancesRequest
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
+	}
+
+	err := instanceService.HandleProcessInstance(&r, util.GetCurrentUserId(c))
+	if err != nil {
+		return response.FailWithMsg(c, http.StatusBadRequest, err)
+	}
+
+	return response.OkWithData(c, nil)
+}
+
 // 获取一个实例
 func GetProcessInstance(c echo.Context) error {
 	id, err := strconv.Atoi(c.QueryParam("id"))

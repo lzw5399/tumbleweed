@@ -27,6 +27,7 @@ type InstanceService interface {
 	CreateProcessInstance(*request.ProcessInstanceRequest, uint) (uint, error)
 	Get(uint) (*model.ProcessInstance, error)
 	List(*request.InstanceListRequest, uint) (*response.PagingResponse, error)
+	HandleProcessInstance(*request.HandleInstancesRequest, uint) error
 }
 
 type instanceService struct {
@@ -53,7 +54,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 查询对应的流程模板
 	err = global.BankDb.
 		Where("id = ?", processInstance.ProcessDefinitionId).
-		Find(&processDefinition).
+		First(&processDefinition).
 		Error
 	if err != nil {
 		return 0, err
@@ -280,6 +281,31 @@ func (i *instanceService) List(r *request.InstanceListRequest, currentUserId uin
 		CurrentCount: int64(len(instances)),
 		Data:         &instances,
 	}, err
+}
+
+// 处理/审批ProcessInstance
+func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint) error {
+	var (
+		instanceEngine *engine.InstanceEngine
+		err            error
+	)
+
+	// 流程实例引擎
+	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId)
+	if err != nil {
+		return err
+	}
+
+	// 验证合法性(1.edgeId是否合法 2.当前用户是否有权限处理)
+	err = instanceEngine.ValidateHandleRequest(r, currentUserId)
+	if err != nil {
+		return err
+	}
+
+	// 验证用户是否有全
+
+
+	return err
 }
 
 // 获取实例的某一个变量

@@ -162,9 +162,66 @@ var doc = `{
                     }
                 }
             }
+        },
+        "/api/process-instances/_handle": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-instances"
+                ],
+                "summary": "处理/审批一个流程",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.HandleInstancesRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "current-user",
+                        "name": "current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "request.HandleInstancesRequest": {
+            "type": "object",
+            "properties": {
+                "edgeId": {
+                    "description": "走的流程的id",
+                    "type": "string"
+                },
+                "processInstanceId": {
+                    "description": "流程实例的id",
+                    "type": "integer"
+                },
+                "remarks": {
+                    "description": "备注",
+                    "type": "string"
+                }
+            }
+        },
         "request.ProcessDefinitionRequest": {
             "type": "object",
             "properties": {

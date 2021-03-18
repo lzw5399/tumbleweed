@@ -1,4 +1,16 @@
 definitions:
+  request.HandleInstancesRequest:
+    properties:
+      edgeId:
+        description: 走的流程的id
+        type: string
+      processInstanceId:
+        description: 流程实例的id
+        type: integer
+      remarks:
+        description: 备注
+        type: string
+    type: object
   request.ProcessDefinitionRequest:
     properties:
       classifyId:
@@ -135,6 +147,32 @@ paths:
           schema:
             $ref: '#/definitions/response.HttpResponse'
       summary: 创建新的流程实例
+      tags:
+      - process-instances
+  /api/process-instances/_handle:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.HandleInstancesRequest'
+      - description: current-user
+        in: header
+        name: current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 处理/审批一个流程
       tags:
       - process-instances
 swagger: "2.0"

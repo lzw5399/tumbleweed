@@ -6,6 +6,7 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"workflow/src/global"
 	"workflow/src/model"
 	"workflow/src/model/request"
+	"workflow/src/service/engine"
+	"workflow/src/util"
 )
 
 type DefinitionService interface {
@@ -37,7 +40,7 @@ func (d *definitionService) GetDefinition(id uint) (*model.ProcessDefinition, er
 
 	err := global.BankDb.
 		Where("id=?", id).
-		Find(&definition).Error
+		First(&definition).Error
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("查询流程详情失败")
@@ -57,6 +60,20 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 	if c != 0 {
 		return errors.New(fmt.Sprintf("当前名称为:\"%s\"的模板已存在", r.Name))
 	}
+
+	// 如果edge对象不存在id，则生成一个
+	var definitionStructure engine.DefinitionStructure
+	err := json.Unmarshal(r.Structure, &definitionStructure)
+	if err != nil {
+		return errors.New("当前structure不合法，请检查")
+	}
+
+	for _, edge := range definitionStructure["edges"] {
+		if edge["id"] == nil {
+			edge["id"] = fmt.Sprintf("flow_%s", util.GenUUID())
+		}
+	}
+	r.Structure = util.MarshalToBytes(definitionStructure)
 
 	// todo 校验structure的json
 

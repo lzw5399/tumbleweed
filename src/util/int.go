@@ -19,3 +19,12 @@ func StringToInt(str string) int {
 
 	return i
 }
+
+func InterfaceToUint(i interface{}) uint {
+	str, succeed := i.(string)
+	if !succeed {
+		return 0
+	}
+
+	return StringToUint(str)
+}
