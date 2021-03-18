@@ -13,8 +13,8 @@ type EntityBase struct {
 
 type AuditableBase struct {
 	EntityBase
-	CreateTime time.Time `gorm:"default:now()" json:"create_time" form:"create_time"`
-	UpdateTime time.Time `gorm:"default:now()"  json:"update_time" form:"update_time"`
-	CreateBy   uint      `json:"create_by" form:"create_by"`
-	UpdateBy   uint      `json:"update_by" form:"update_by"`
+	CreateTime time.Time `gorm:"default:now()" json:"createTime" form:"createTime"`
+	UpdateTime time.Time `gorm:"default:now()"  json:"updateTime" form:"updateTime"`
+	CreateBy   uint      `json:"createBy" form:"createBy"`
+	UpdateBy   uint      `json:"updateBy" form:"updateBy"`
 }

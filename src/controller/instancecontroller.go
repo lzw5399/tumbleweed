@@ -41,20 +41,29 @@ func CreateProcessInstance(c echo.Context) error {
 		return response.FailWithMsg(c, int(result), err)
 	}
 
-	return response.OkWithData(c, result)
+	return response.OkWithData(c, map[string]interface{}{
+		"id": result,
+	})
 }
 
-// process instance list
+// @Tags process-instances
+// @Summary 获取流程实例列表
+// @Accept  json
+// @Produce json
+// @param request query request.InstanceListRequest true "request"
+// @param current-user header string true "current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances [GET]
 func ListProcessInstances(c echo.Context) error {
 	// 从queryString获取分页参数
-	var r request.PagingRequest
+	var r request.InstanceListRequest
 	if err := c.Bind(&r); err != nil {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	instances, err := instanceService.List(&r)
+	instances, err := instanceService.List(&r, util.GetCurrentUserId(c))
 	if err != nil {
-		return response.Failed(c, http.StatusInternalServerError)
+		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
 
 	return response.OkWithData(c, instances)

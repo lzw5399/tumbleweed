@@ -73,6 +73,45 @@ paths:
       tags:
       - process-definitions
   /api/process-instances:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 取的条数
+        in: query
+        name: limit
+        type: integer
+      - description: 跳过的条数
+        in: query
+        name: offset
+        type: integer
+      - description: asc或者是desc
+        in: query
+        name: order
+        type: string
+      - description: 排序键的名字，在各查询实现中默认值与可用值都不同
+        in: query
+        name: sort
+        type: string
+      - description: 类别
+        in: query
+        name: type
+        type: integer
+      - description: current-user
+        in: header
+        name: current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 获取流程实例列表
+      tags:
+      - process-instances
     post:
       consumes:
       - application/json

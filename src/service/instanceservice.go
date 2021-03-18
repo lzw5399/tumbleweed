@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"workflow/src/global"
+	"workflow/src/global/constant"
 	"workflow/src/global/shared"
 	"workflow/src/model"
 	"workflow/src/model/request"
@@ -25,7 +26,7 @@ import (
 type InstanceService interface {
 	CreateProcessInstance(*request.ProcessInstanceRequest, uint) (uint, error)
 	Get(uint) (*model.ProcessInstance, error)
-	List(*request.PagingRequest) (*response.PagingResponse, error)
+	List(*request.InstanceListRequest, uint) (*response.PagingResponse, error)
 }
 
 type instanceService struct {
@@ -236,7 +237,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 
 	// todo 暂时省略了执行脚本任务
 
-	return 0, err
+	return processInstance.Id, err
 }
 
 // 获取单个ProcessInstance
@@ -248,16 +249,34 @@ func (i *instanceService) Get(instanceId uint) (*model.ProcessInstance, error) {
 }
 
 // 获取ProcessInstance列表
-func (i *instanceService) List(r *request.PagingRequest) (*response.PagingResponse, error) {
+func (i *instanceService) List(r *request.InstanceListRequest, currentUserId uint) (*response.PagingResponse, error) {
 	var instances []model.ProcessInstance
-	db := shared.ApplyPaging(global.BankDb, r)
+	db := global.BankDb.Model(&model.ProcessInstance{})
+
+	// 根据type的不同有不同的逻辑
+	switch r.Type {
+	case constant.MyToDo:
+		db = db.Joins("cross join jsonb_array_elements(state) as elem").Where(fmt.Sprintf("elem -> 'processor' @> '%v'", currentUserId))
+		break
+	case constant.ICreated:
+		db = db.Where("create_by=?", currentUserId)
+		break
+	case constant.IRelated:
+		db = db.Where(fmt.Sprintf("related_person @> '%v'", currentUserId))
+		break
+	case constant.All:
+	default:
+		break
+	}
+
+	var count int64
+	db.Count(&count)
+
+	db = shared.ApplyPaging(db, &r.PagingRequest)
 	err := db.Find(&instances).Error
 
-	var totalCount int64
-	global.BankDb.Model(&model.ProcessInstance{}).Count(&totalCount)
-
 	return &response.PagingResponse{
-		TotalCount:   totalCount,
+		TotalCount:   count,
 		CurrentCount: int64(len(instances)),
 		Data:         &instances,
 	}, err
