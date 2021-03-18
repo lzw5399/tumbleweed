@@ -95,7 +95,7 @@ func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest
 			"notice":      processDefinition.Notice,
 			"remarks":     processDefinition.Remarks,
 			"update_by":   1, //todo currentid
-			"update_time": time.Now(),
+			"update_time": time.Now().Local(),
 		}).Error
 
 	return err

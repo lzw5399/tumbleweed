@@ -14,7 +14,7 @@ import (
 )
 
 func Index(c echo.Context) error {
-	return response.OkWithData(c, time.Now())
+	return response.OkWithData(c, time.Now().Local())
 }
 
 func Liveliness(c echo.Context) error {

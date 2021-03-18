@@ -44,21 +44,6 @@ func CreateProcessInstance(c echo.Context) error {
 	return response.OkWithData(c, result)
 }
 
-// 获取一个实例
-func GetProcessInstance(c echo.Context) error {
-	id, err := strconv.Atoi(c.QueryParam("id"))
-	if err != nil {
-		return response.Failed(c, http.StatusBadRequest)
-	}
-
-	instance, err := instanceService.Get(uint(id))
-	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
-	}
-
-	return response.OkWithData(c, instance)
-}
-
 // process instance list
 func ListProcessInstances(c echo.Context) error {
 	// 从queryString获取分页参数
@@ -73,6 +58,21 @@ func ListProcessInstances(c echo.Context) error {
 	}
 
 	return response.OkWithData(c, instances)
+}
+
+// 获取一个实例
+func GetProcessInstance(c echo.Context) error {
+	id, err := strconv.Atoi(c.QueryParam("id"))
+	if err != nil {
+		return response.Failed(c, http.StatusBadRequest)
+	}
+
+	instance, err := instanceService.Get(uint(id))
+	if err != nil {
+		return response.Failed(c, http.StatusNotFound)
+	}
+
+	return response.OkWithData(c, instance)
 }
 
 // 获取流程实例中的变量

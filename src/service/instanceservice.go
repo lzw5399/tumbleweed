@@ -38,15 +38,15 @@ func NewInstanceService() *instanceService {
 // 创建实例
 func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint) (uint, error) {
 	var (
-		variableValue     []map[string]interface{} // 变量值
-		err               error
-		processDefinition model.ProcessDefinition // 流程模板
-		processInstance   = r.ToProcessInstance(currentUserId)
-		processEngine     *engine.ProcessEngine  // 流程定义引擎
-		instanceEngine    *engine.InstanceEngine // 流程实例引擎
-		condExprStatus    bool
-		sourceEdges       []map[string]interface{}
-		targetEdges       []map[string]interface{}
+		currentInstanceState []map[string]interface{} // 变量值
+		err                  error
+		processDefinition    model.ProcessDefinition // 流程模板
+		processInstance      = r.ToProcessInstance(currentUserId)
+		processEngine        *engine.ProcessEngine  // 流程定义引擎
+		instanceEngine       *engine.InstanceEngine // 流程实例引擎
+		condExprStatus       bool
+		sourceEdges          []map[string]interface{}
+		targetEdges          []map[string]interface{}
 	)
 
 	// 查询对应的流程模板
@@ -70,34 +70,24 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// 将初始状态赋值给当前的流程实例
-	if state, err := instanceEngine.GetInstanceInitialState(); err != nil {
+	if currentInstanceState, err = instanceEngine.GetInstanceInitialState(); err != nil {
 		return 0, err
 	} else {
-		processInstance.State = util.MarshalToBytes(state)
+		processInstance.State = util.MarshalToBytes(currentInstanceState)
 	}
-
-	// 把对应的流程模板的structure单独反序列化出来处理
-	nodeValue, err := processEngine.GetNode(variableValue[0]["id"].(string))
-	if err != nil {
-		return 0, err
-	}
-
-	// 获取变量值
-	err = json.Unmarshal(processInstance.State, &variableValue)
-	if err != nil {
-		log.Error(err)
-		return 0, err
-	}
-
-	// 填充process instance的当前状态state字段
-
 	// TODO 省略了processInstance.State针对变量的预处理
 
-	switch nodeValue["clazz"] {
+	// 把对应的流程模板的structure单独反序列化出来处理
+	comingNode, err := processEngine.GetNode(currentInstanceState[0]["id"].(string))
+	if err != nil {
+		return 0, err
+	}
+
+	switch comingNode["clazz"] {
 	// 排他网关
 	case "exclusiveGateway":
 		var sourceEdges []map[string]interface{}
-		sourceEdges, err = processEngine.GetEdge(nodeValue["id"].(string), "source")
+		sourceEdges, err = processEngine.GetEdge(comingNode["id"].(string), "source")
 		if err != nil {
 			return 0, err
 		}
@@ -116,21 +106,21 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 				}
 				if condExprStatus {
 					// 进行节点跳转
-					nodeValue, err = processEngine.GetNode(edge["target"].(string))
+					comingNode, err = processEngine.GetNode(edge["target"].(string))
 					if err != nil {
 						return 0, err
 					}
 
-					if nodeValue["clazz"] == "userTask" || nodeValue["clazz"] == "receiveTask" {
-						if nodeValue["assignValue"] == nil || nodeValue["assignType"] == "" {
+					if comingNode["clazz"] == "userTask" || comingNode["clazz"] == "receiveTask" {
+						if comingNode["assignValue"] == nil || comingNode["assignType"] == "" {
 							err = errors.New("处理人不能为空")
 							return 0, err
 						}
 					}
-					variableValue[0]["id"] = nodeValue["id"].(string)
-					variableValue[0]["label"] = nodeValue["label"]
-					variableValue[0]["processor"] = nodeValue["assignValue"]
-					variableValue[0]["process_method"] = nodeValue["assignType"]
+					currentInstanceState[0]["id"] = comingNode["id"].(string)
+					currentInstanceState[0]["label"] = comingNode["label"]
+					currentInstanceState[0]["processor"] = comingNode["assignValue"]
+					currentInstanceState[0]["process_method"] = comingNode["assignType"]
 					break breakTag
 				}
 			}
@@ -141,18 +131,18 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 并行网关
 	case "parallelGateway":
 		// 入口，判断
-		sourceEdges, err = processEngine.GetEdge(nodeValue["id"].(string), "source")
+		sourceEdges, err = processEngine.GetEdge(comingNode["id"].(string), "source")
 		if err != nil {
 			return 0, fmt.Errorf("查询流转信息失败，%v", err.Error())
 		}
 
-		targetEdges, err = processEngine.GetEdge(nodeValue["id"].(string), "target")
+		targetEdges, err = processEngine.GetEdge(comingNode["id"].(string), "target")
 		if err != nil {
 			return 0, fmt.Errorf("查询流转信息失败，%v", err.Error())
 		}
 
 		if len(sourceEdges) > 0 {
-			nodeValue, err = processEngine.GetNode(sourceEdges[0]["target"].(string))
+			comingNode, err = processEngine.GetNode(sourceEdges[0]["target"].(string))
 			if err != nil {
 				return 0, err
 			}
@@ -162,13 +152,13 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 
 		if len(sourceEdges) > 1 && len(targetEdges) == 1 {
 			// 入口
-			variableValue = []map[string]interface{}{}
+			currentInstanceState = []map[string]interface{}{}
 			for _, edge := range sourceEdges {
 				targetStateValue, err := processEngine.GetNode(edge["target"].(string))
 				if err != nil {
 					return 0, err
 				}
-				variableValue = append(variableValue, map[string]interface{}{
+				currentInstanceState = append(currentInstanceState, map[string]interface{}{
 					"id":             edge["target"].(string),
 					"label":          targetStateValue["label"],
 					"processor":      targetStateValue["assignValue"],
@@ -181,14 +171,14 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// 变量的预处理
-	err = preprocessVariables(variableValue, currentUserId)
+	err = preprocessVariables(currentInstanceState, currentUserId)
 	if err != nil {
 		log.Error(err)
 		return 0, errors.New("获取处理人变量值失败")
 	}
 
 	// 将最新的“变量/状态信息”赋值给processInstance
-	processInstance.State, err = json.Marshal(variableValue)
+	processInstance.State, err = json.Marshal(currentInstanceState)
 	if err != nil {
 		return 0, err
 	}

@@ -125,37 +125,12 @@
         "request.ProcessInstanceRequest": {
             "type": "object",
             "properties": {
-                "classify": {
-                    "description": "分类ID",
-                    "type": "integer"
-                },
-                "priority": {
-                    "description": "工单优先级 1，正常 2，紧急 3，非常紧急",
-                    "type": "integer"
-                },
                 "processDefinitionId": {
                     "description": "流程ID",
                     "type": "integer"
                 },
-                "relatedPerson": {
-                    "description": "工单所有处理人",
-                    "type": "string"
-                },
-                "source": {
-                    "type": "string"
-                },
-                "sourceState": {
-                    "type": "string"
-                },
-                "state": {
-                    "description": "状态信息",
-                    "type": "string"
-                },
-                "tasks": {
-                    "type": "string"
-                },
                 "title": {
-                    "description": "工单标题",
+                    "description": "流程实例标题",
                     "type": "string"
                 }
             }

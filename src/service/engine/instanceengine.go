@@ -32,7 +32,8 @@ func NewInstanceEngine(p model.ProcessDefinition) (*InstanceEngine, error) {
 
 // 获取instance的初始state
 func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, error) {
-	state := make([]map[string]interface{}, 1)
+	states := make([]map[string]interface{}, 1)
+	state := make(map[string]interface{})
 
 	startNode := i.definitionStructure["nodes"][0]
 	startNodeId := startNode["id"].(string)
@@ -42,6 +43,7 @@ func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, er
 	for _, edge := range i.definitionStructure["edges"] {
 		if edge["source"].(string) == startNodeId {
 			firstEdge = edge
+			break
 		}
 	}
 
@@ -55,6 +57,7 @@ func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, er
 	for _, node := range i.definitionStructure["nodes"] {
 		if node["id"].(string) == firstEdgeTargetId {
 			nextNode = node
+			break
 		}
 	}
 
@@ -62,10 +65,11 @@ func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, er
 		return nil, errors.New("流程模板结构不合法, 请检查初始流程节点和初始顺序流")
 	}
 
-	state[0]["id"] = nextNode["id"]
-	state[0]["processMethod"] = nextNode["assignType"]
-	state[0]["processor"] = nextNode["assignValue"]
-	state[0]["label"] = nextNode["label"]
+	state["id"] = nextNode["id"]
+	state["processMethod"] = nextNode["assignType"]
+	state["processor"] = nextNode["assignValue"]
+	state["label"] = nextNode["label"]
+	states[0] = state
 
-	return state, nil
+	return states, nil
 }

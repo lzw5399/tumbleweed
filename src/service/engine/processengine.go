@@ -52,6 +52,7 @@ func (p *ProcessEngine) GetNode(stateId string) (nodeValue map[string]interface{
 	for _, node := range p.DefinitionStructure["nodes"] {
 		if node["id"] == stateId {
 			nodeValue = node
+			return
 		}
 	}
 	return

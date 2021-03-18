@@ -31,8 +31,8 @@ func (p *ProcessDefinitionRequest) ProcessDefinition() model.ProcessDefinition {
 			EntityBase: model.EntityBase{
 				Id: p.Id,
 			},
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
+			CreateTime: time.Now().Local(),
+			UpdateTime: time.Now().Local(),
 		},
 		Name:        p.Name,
 		Structure:   datatypes.JSON(p.Structure),
