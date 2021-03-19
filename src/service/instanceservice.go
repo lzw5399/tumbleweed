@@ -205,6 +205,10 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		// 创建历史记录
 		initialNode, _ := processEngine.GetInitialNode()
 		err = tx.Create(&model.CirculationHistory{
+			AuditableBase: model.AuditableBase{
+				CreateBy:   currentUserId,
+				UpdateBy:   currentUserId,
+			},
 			Title:             processInstance.Title,
 			ProcessInstanceId: processInstance.Id,
 			SourceState:       initialNode["label"].(string),
@@ -212,6 +216,8 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 			TargetId:          currentInstanceState[0]["id"].(string),
 			Circulation:       "新建",
 			ProcessorId:       currentUserId,
+			CostDuration:      "0",
+			Remarks:           "",
 		}).Error
 		if err != nil {
 			return fmt.Errorf("新建历史记录失败，%v", err.Error())

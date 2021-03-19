@@ -9,11 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"workflow/src/global"
 	"workflow/src/global/constant"
 	"workflow/src/model"
 	"workflow/src/model/request"
+	"workflow/src/util"
 )
 
 type InstanceEngine struct {
@@ -168,7 +170,44 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		return i.CommonProcessing(edge, targetNode, newStates)
 	}
 
+	// 更新上一条的流转历史的CostDuration
+	var lastCirculation model.CirculationHistory
+	err = global.BankDb.
+		Model(&model.CirculationHistory{}).
+		Where("process_instance_id = ?", r.ProcessInstanceId).
+		Order("create_time desc").
+		Find(lastCirculation).
+		Limit(1).
+		Error
+	if err != nil {
+		return err
+	}
+	duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
+	err = global.BankDb.
+		Model(&model.CirculationHistory{}).
+		Where("id = ?", lastCirculation.Id).
+		Updates(map[string]interface{}{
+			"cost_duration": duration,
+			"update_time":   time.Now().Local(),
+			"update_by":     i.currentUserId,
+		}).
+		Error
+	if err != nil {
+		return err
+	}
 
+	// 创建新的一条流转历史
+	//cirHistory := model.CirculationHistory{
+	//	Title:             h.workOrderDetails.Title,
+	//	ProcessInstanceId: 0,
+	//	SourceState:       "",
+	//	SourceId:          "",
+	//	TargetId:          "",
+	//	Circulation:       circulationValue,
+	//	ProcessorId:       tools.GetUserId(c),
+	//	CostDuration:      costDurationValue,
+	//	Remarks:           remarks,
+	//}
 
 	return nil
 }

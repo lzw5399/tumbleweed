@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -89,16 +88,6 @@ func (p *ProcessEngine) GetEdge(stateId string, classify string) (edgeValue []ma
 	}
 
 	return
-}
-
-// 时间格式化
-func fmtDuration(d time.Duration) string {
-	d = d.Round(time.Minute)
-	h := d / time.Hour
-	d -= h * time.Hour
-	m := d / time.Minute
-
-	return fmt.Sprintf("%02d小时 %02d分钟", h, m)
 }
 
 func (p *ProcessEngine) GetInitialNode() (map[string]interface{}, error) {
