@@ -11,17 +11,19 @@ import (
 	"fmt"
 
 	"workflow/src/global"
+	"workflow/src/global/constant"
 	"workflow/src/model"
 	"workflow/src/model/request"
 )
 
 type InstanceEngine struct {
-	ProcessInstance     model.ProcessInstance
-	ProcessDefinition   model.ProcessDefinition
-	definitionStructure DefinitionStructure
+	ProcessInstance     model.ProcessInstance   // 流程实例
+	ProcessDefinition   model.ProcessDefinition // 流程定义
+	definitionStructure DefinitionStructure     // 流程定义中的结构
+	currentUserId       uint                    // 当前用户id
 }
 
-func NewInstanceEngine(p model.ProcessDefinition) (*InstanceEngine, error) {
+func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*InstanceEngine, error) {
 	var definitionStructure DefinitionStructure
 	err := json.Unmarshal(p.Structure, &definitionStructure)
 	if err != nil {
@@ -31,10 +33,11 @@ func NewInstanceEngine(p model.ProcessDefinition) (*InstanceEngine, error) {
 	return &InstanceEngine{
 		ProcessDefinition:   model.ProcessDefinition{},
 		definitionStructure: definitionStructure,
+		currentUserId:       currentUserId,
 	}, nil
 }
 
-func NewInstanceEngineByInstanceId(processInstanceId uint) (*InstanceEngine, error) {
+func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint) (*InstanceEngine, error) {
 	var processInstance model.ProcessInstance
 	var processDefinition model.ProcessDefinition
 
@@ -66,14 +69,12 @@ func NewInstanceEngineByInstanceId(processInstanceId uint) (*InstanceEngine, err
 		ProcessInstance:     processInstance,
 		ProcessDefinition:   processDefinition,
 		definitionStructure: definitionStructure,
+		currentUserId:       currentUserId,
 	}, nil
 }
 
 // 获取instance的初始state
 func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, error) {
-	states := make([]map[string]interface{}, 1)
-	state := make(map[string]interface{})
-
 	startNode := i.definitionStructure["nodes"][0]
 	startNodeId := startNode["id"].(string)
 	var firstEdge map[string]interface{}
@@ -102,40 +103,21 @@ func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, er
 		return nil, errors.New("流程模板结构不合法, 请检查初始流程节点和初始顺序流")
 	}
 
-	// 获取接下来的节点nextNode的可用的edge
-	availableEdges := make([]map[string]interface{}, 0, 1)
-	nextNodeId := nextNode["id"].(string)
-	for _, edge := range i.definitionStructure["edges"] {
-		if edge["source"].(string) == nextNodeId {
-			availableEdges = append(availableEdges, edge)
-		}
-	}
+	// 获取初始的states
+	initialStates := i.GenStates([]map[string]interface{}{nextNode})
 
-	state["id"] = nextNode["id"]
-	state["processMethod"] = nextNode["assignType"]
-	state["processor"] = nextNode["assignValue"]
-	state["label"] = nextNode["label"]
-	state["availableEdges"] = availableEdges
-	states[0] = state
-
-	return states, nil
+	return initialStates, nil
 }
 
 // 验证入参合法性
 func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest, currentUserId uint) error {
-	var currentEdge map[string]interface{}
-	for _, edge := range i.definitionStructure["edges"] {
-		if edge["id"].(string) == r.EdgeID {
-			currentEdge = edge
-			break
-		}
-	}
-	if currentEdge == nil {
-		return fmt.Errorf("入参错误，当前edgeId:%s不存在", r.EdgeID)
+	currentEdge, err := i.GetEdge(r.EdgeID)
+	if err != nil {
+		return err
 	}
 
 	var currentInstanceState []map[string]interface{}
-	err := json.Unmarshal(i.ProcessInstance.State, &currentInstanceState)
+	err = json.Unmarshal(i.ProcessInstance.State, &currentInstanceState)
 	if err != nil {
 		return errors.New("当前processInstance的state状态不合法, 请检查")
 	}
@@ -161,8 +143,105 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 	}
 
 	if !hasPermission {
-		return fmt.Errorf("当前用户id:%v, 没有权限进行当前操作", currentUserId)
+		return errors.New("当前用户无权限进行当前操作")
 	}
 
 	return nil
+}
+
+// 根据流程处理
+func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
+	edge, err := i.GetEdge(r.EdgeID)
+	if err != nil {
+		return err
+	}
+
+	targetNode, err := i.GetTargetNodeByEdgeId(r.EdgeID)
+	if err != nil {
+		return err
+	}
+
+	// 判断目标节点的类型，有不同的处理方式
+	switch targetNode["clazz"] {
+	case constant.USER_TASK:
+		newStates := i.GenStates([]map[string]interface{}{targetNode})
+		return i.CommonProcessing(edge, targetNode, newStates)
+	}
+
+
+
+	return nil
+}
+
+// 获取edge
+func (i *InstanceEngine) GetEdge(edgeId string) (map[string]interface{}, error) {
+	if i.definitionStructure["edges"] == nil {
+		return nil, errors.New("当前模板结构不合法, 缺少edges, 请检查")
+	}
+
+	for _, edge := range i.definitionStructure["edges"] {
+		if edge["id"].(string) == edgeId {
+			return edge, nil
+		}
+	}
+
+	return nil, fmt.Errorf("当前edgeId为:%s的edge不存在", edgeId)
+}
+
+// 获取node
+func (i *InstanceEngine) GetNode(nodeId string) (map[string]interface{}, error) {
+	if i.definitionStructure["nodes"] == nil {
+		return nil, errors.New("当前模板结构不合法, 缺少nodes, 请检查")
+	}
+
+	for _, edge := range i.definitionStructure["nodes"] {
+		if edge["id"].(string) == nodeId {
+			return edge, nil
+		}
+	}
+
+	return nil, fmt.Errorf("当前nodeId为:%s的node不存在", nodeId)
+}
+
+// 获取edge上的targetNode
+func (i *InstanceEngine) GetTargetNodeByEdgeId(edgeId string) (map[string]interface{}, error) {
+	edge, err := i.GetEdge(edgeId)
+	if err != nil {
+		return nil, err
+	}
+
+	return i.GetNode(edge["target"].(string))
+}
+
+// 获取当前ProcessInstance的State
+func (i *InstanceEngine) GetCurrentInstanceState() ([]map[string]interface{}, error) {
+	var currentInstanceStates []map[string]interface{}
+	err := json.Unmarshal(i.ProcessInstance.State, &currentInstanceStates)
+
+	return currentInstanceStates, err
+}
+
+// 获取数据库process_instance表存储的state字段的对象
+func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) []map[string]interface{} {
+	states := make([]map[string]interface{}, 0)
+	for _, node := range nodes {
+		state := make(map[string]interface{})
+		state["id"] = node["id"]
+		state["processMethod"] = node["assignType"]
+		state["processor"] = node["assignValue"]
+		state["label"] = node["label"]
+
+		// 获取可用的edge
+		availableEdges := make([]map[string]interface{}, 0, 1)
+		for _, edge := range i.definitionStructure["edges"] {
+			if edge["source"].(string) == node["id"].(string) {
+				availableEdges = append(availableEdges, edge)
+			}
+		}
+		state["availableEdges"] = availableEdges
+
+		states = append(states, state)
+	}
+
+	return states
 }

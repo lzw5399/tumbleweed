@@ -24,7 +24,7 @@ import (
 )
 
 type InstanceService interface {
-	CreateProcessInstance(*request.ProcessInstanceRequest, uint) (uint, error)
+	CreateProcessInstance(*request.ProcessInstanceRequest, uint) (*model.ProcessInstance, error)
 	Get(uint) (*model.ProcessInstance, error)
 	List(*request.InstanceListRequest, uint) (*response.PagingResponse, error)
 	HandleProcessInstance(*request.HandleInstancesRequest, uint) error
@@ -38,7 +38,7 @@ func NewInstanceService() *instanceService {
 }
 
 // 创建实例
-func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint) (uint, error) {
+func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint) (*model.ProcessInstance, error) {
 	var (
 		currentInstanceState []map[string]interface{} // 变量值
 		err                  error
@@ -57,23 +57,23 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		First(&processDefinition).
 		Error
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// 实例化流程引擎
 	processEngine, err = engine.NewProcessEngine(processDefinition)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	instanceEngine, err = engine.NewInstanceEngine(processDefinition)
+	instanceEngine, err = engine.NewInstanceEngine(processDefinition, currentUserId)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// 将初始状态赋值给当前的流程实例
 	if currentInstanceState, err = instanceEngine.GetInstanceInitialState(); err != nil {
-		return 0, err
+		return nil, err
 	} else {
 		processInstance.State = util.MarshalToBytes(currentInstanceState)
 	}
@@ -82,7 +82,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 把对应的流程模板的structure单独反序列化出来处理
 	comingNode, err := processEngine.GetNode(currentInstanceState[0]["id"].(string))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	switch comingNode["clazz"] {
@@ -91,32 +91,32 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		var sourceEdges []map[string]interface{}
 		sourceEdges, err = processEngine.GetEdge(comingNode["id"].(string), "source")
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 	breakTag:
 		for _, edge := range sourceEdges {
 			edgeCondExpr := make([]map[string]interface{}, 0)
 			err = json.Unmarshal([]byte(edge["conditionExpression"].(string)), &edgeCondExpr)
 			if err != nil {
-				return 0, err
+				return nil, err
 			}
 			for _, condExpr := range edgeCondExpr {
 				// 条件判断
 				condExprStatus, err = processEngine.ConditionalJudgment(condExpr)
 				if err != nil {
-					return 0, err
+					return nil, err
 				}
 				if condExprStatus {
 					// 进行节点跳转
 					comingNode, err = processEngine.GetNode(edge["target"].(string))
 					if err != nil {
-						return 0, err
+						return nil, err
 					}
 
 					if comingNode["clazz"] == "userTask" || comingNode["clazz"] == "receiveTask" {
 						if comingNode["assignValue"] == nil || comingNode["assignType"] == "" {
 							err = errors.New("处理人不能为空")
-							return 0, err
+							return nil, err
 						}
 					}
 					currentInstanceState[0]["id"] = comingNode["id"].(string)
@@ -128,28 +128,28 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 			}
 		}
 		if !condExprStatus {
-			return 0, errors.New("所有流转均不符合条件，请确认。")
+			return nil, errors.New("所有流转均不符合条件，请确认。")
 		}
 	// 并行网关
 	case "parallelGateway":
 		// 入口，判断
 		sourceEdges, err = processEngine.GetEdge(comingNode["id"].(string), "source")
 		if err != nil {
-			return 0, fmt.Errorf("查询流转信息失败，%v", err.Error())
+			return nil, fmt.Errorf("查询流转信息失败，%v", err.Error())
 		}
 
 		targetEdges, err = processEngine.GetEdge(comingNode["id"].(string), "target")
 		if err != nil {
-			return 0, fmt.Errorf("查询流转信息失败，%v", err.Error())
+			return nil, fmt.Errorf("查询流转信息失败，%v", err.Error())
 		}
 
 		if len(sourceEdges) > 0 {
 			comingNode, err = processEngine.GetNode(sourceEdges[0]["target"].(string))
 			if err != nil {
-				return 0, err
+				return nil, err
 			}
 		} else {
-			return 0, errors.New("并行网关流程不正确")
+			return nil, errors.New("并行网关流程不正确")
 		}
 
 		if len(sourceEdges) > 1 && len(targetEdges) == 1 {
@@ -158,7 +158,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 			for _, edge := range sourceEdges {
 				targetStateValue, err := processEngine.GetNode(edge["target"].(string))
 				if err != nil {
-					return 0, err
+					return nil, err
 				}
 				currentInstanceState = append(currentInstanceState, map[string]interface{}{
 					"id":             edge["target"].(string),
@@ -168,7 +168,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 				})
 			}
 		} else {
-			return 0, errors.New("并行网关流程配置不正确")
+			return nil, errors.New("并行网关流程配置不正确")
 		}
 	}
 
@@ -176,13 +176,13 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	err = preprocessVariables(currentInstanceState, currentUserId)
 	if err != nil {
 		log.Error(err)
-		return 0, errors.New("获取处理人变量值失败")
+		return nil, errors.New("获取处理人变量值失败")
 	}
 
 	// 将最新的“变量/状态信息”赋值给processInstance
 	processInstance.State, err = json.Marshal(currentInstanceState)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// processInstance某些字段更新
@@ -203,21 +203,15 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		// todo 省略了【获取当前用户信息】
 
 		// 创建历史记录
-		var stateList []interface{}
-		err = json.Unmarshal(processInstance.State, &stateList)
-		if err != nil {
-			return fmt.Errorf("json序列化失败，%s", err.Error())
-		}
-
+		initialNode, _ := processEngine.GetInitialNode()
 		err = tx.Create(&model.CirculationHistory{
 			Title:             processInstance.Title,
 			ProcessInstanceId: processInstance.Id,
-			//State:             r.SourceState, // todo带填充
-			//Source:            r.Source, // todo带填充
-			Target:      stateList[0].(map[string]interface{})["id"].(string),
-			Circulation: "新建",
-			Processor:   "", // todo 上面两个也要
-			ProcessorId: currentUserId,
+			SourceState:       initialNode["label"].(string),
+			SourceId:          initialNode["id"].(string),
+			TargetId:          currentInstanceState[0]["id"].(string),
+			Circulation:       "新建",
+			ProcessorId:       currentUserId,
 		}).Error
 		if err != nil {
 			return fmt.Errorf("新建历史记录失败，%v", err.Error())
@@ -238,7 +232,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 
 	// todo 暂时省略了执行脚本任务
 
-	return processInstance.Id, err
+	return &processInstance, err
 }
 
 // 获取单个ProcessInstance
@@ -291,7 +285,7 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	)
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId)
+	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId)
 	if err != nil {
 		return err
 	}
@@ -302,8 +296,8 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 		return err
 	}
 
-	// 验证用户是否有全
-
+	// 处理
+	err = instanceEngine.Handle(r)
 
 	return err
 }

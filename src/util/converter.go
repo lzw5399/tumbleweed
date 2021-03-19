@@ -7,6 +7,8 @@ package util
 
 import (
 	"encoding/json"
+
+	"gorm.io/datatypes"
 )
 
 func StringToMap(jsonStr string) (map[string]string, error) {
@@ -35,6 +37,10 @@ func MarshalToBytes(m interface{}) []byte {
 	bytes, _ := json.Marshal(m)
 
 	return bytes
+}
+
+func MarshalToDbJson(m interface{}) datatypes.JSON {
+	return datatypes.JSON(MarshalToBytes(m))
 }
 
 func MarshalToString(m interface{}) string {

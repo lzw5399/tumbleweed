@@ -101,6 +101,16 @@ func fmtDuration(d time.Duration) string {
 	return fmt.Sprintf("%02d小时 %02d分钟", h, m)
 }
 
+func (p *ProcessEngine) GetInitialNode() (map[string]interface{}, error) {
+	if p.DefinitionStructure["nodes"] == nil || len(p.DefinitionStructure["nodes"]) <= 0 {
+		return nil, errors.New("当前结构不合法")
+	}
+
+	return p.DefinitionStructure["nodes"][0], nil
+}
+
+
+
 // 会签
 //func (h *ProcessEngine) Countersign(c echo.Context) (err error) {
 //	var (
@@ -384,7 +394,7 @@ continueHistoryTag:
 	for _, v := range p.CirHistoryList {
 		status := false
 		for i, s := range stateList {
-			if v.Source == s["id"].(string) && v.Target == target {
+			if v.SourceId == s["id"].(string) && v.TargetId == target {
 				status = true
 				stateList = append(stateList[:i], stateList[i+1:]...)
 				continue continueHistoryTag
@@ -402,7 +412,7 @@ continueHistoryTag:
 	return
 }
 
-//func (h *ProcessEngine) commonProcessing(c echo.Context) (err error) {
+//func (h *ProcessEngine) CommonProcessing(c echo.Context) (err error) {
 //	// 如果是拒绝的流转则直接跳转
 //	if h.FlowProperties == 0 {
 //		err = h.circulation()
@@ -613,7 +623,7 @@ continueHistoryTag:
 //						"processor":      h.TargetStateValue["assignValue"],
 //						"process_method": h.TargetStateValue["assignType"],
 //					}}
-//					err = h.commonProcessing(c)
+//					err = h.CommonProcessing(c)
 //					if err != nil {
 //						err = fmt.Errorf("流程流程跳转失败，%v", err.Error())
 //						return
@@ -725,7 +735,7 @@ continueHistoryTag:
 //		StateValue["processor"] = h.TargetStateValue["assignValue"].([]interface{})
 //		StateValue["process_method"] = h.TargetStateValue["assignType"].(string)
 //		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
-//		err = h.commonProcessing(c)
+//		err = h.CommonProcessing(c)
 //		if err != nil {
 //			return
 //		}
@@ -733,7 +743,7 @@ continueHistoryTag:
 //		StateValue["processor"] = h.TargetStateValue["assignValue"].([]interface{})
 //		StateValue["process_method"] = h.TargetStateValue["assignType"].(string)
 //		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
-//		err = h.commonProcessing(c)
+//		err = h.CommonProcessing(c)
 //		if err != nil {
 //			return
 //		}
@@ -745,7 +755,7 @@ continueHistoryTag:
 //		StateValue["processor"] = []int{}
 //		StateValue["process_method"] = ""
 //		h.UpdateValue["state"] = []map[string]interface{}{StateValue}
-//		err = h.commonProcessing(c)
+//		err = h.CommonProcessing(c)
 //		if err != nil {
 //			return
 //		}

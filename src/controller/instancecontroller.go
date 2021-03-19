@@ -36,14 +36,12 @@ func CreateProcessInstance(c echo.Context) error {
 	}
 
 	currentUserId := util.GetCurrentUserId(c)
-	result, err := instanceService.CreateProcessInstance(&r, currentUserId)
+	processInstance, err := instanceService.CreateProcessInstance(&r, currentUserId)
 	if err != nil {
-		return response.FailWithMsg(c, int(result), err)
+		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
 
-	return response.OkWithData(c, map[string]interface{}{
-		"id": result,
-	})
+	return response.OkWithData(c, processInstance)
 }
 
 // @Tags process-instances
