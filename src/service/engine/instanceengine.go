@@ -151,7 +151,7 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 	return nil
 }
 
-// 根据流程处理
+// 流程处理
 func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 	edge, err := i.GetEdge(r.EdgeID)
 	if err != nil {
@@ -176,7 +176,7 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		Model(&model.CirculationHistory{}).
 		Where("process_instance_id = ?", r.ProcessInstanceId).
 		Order("create_time desc").
-		Find(lastCirculation).
+		Find(&lastCirculation).
 		Limit(1).
 		Error
 	if err != nil {
@@ -197,17 +197,31 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 	}
 
 	// 创建新的一条流转历史
-	//cirHistory := model.CirculationHistory{
-	//	Title:             h.workOrderDetails.Title,
-	//	ProcessInstanceId: 0,
-	//	SourceState:       "",
-	//	SourceId:          "",
-	//	TargetId:          "",
-	//	Circulation:       circulationValue,
-	//	ProcessorId:       tools.GetUserId(c),
-	//	CostDuration:      costDurationValue,
-	//	Remarks:           remarks,
-	//}
+	sourceNode, _ := i.GetNode(edge["target"].(string))
+	cirHistory := model.CirculationHistory{
+		AuditableBase: model.AuditableBase{
+			CreateBy: i.currentUserId,
+			UpdateBy: i.currentUserId,
+		},
+		Title:             i.ProcessInstance.Title,
+		ProcessInstanceId: i.ProcessInstance.Id,
+		SourceState:       sourceNode["label"].(string),
+		SourceId:          sourceNode["id"].(string),
+		TargetId:          targetNode["id"].(string),
+		Circulation:       edge["label"].(string),
+		ProcessorId:       i.currentUserId,
+		CostDuration:      "",
+		Remarks:           r.Remarks,
+	}
+
+	err = global.BankDb.
+		Model(&model.CirculationHistory{}).
+		Create(&cirHistory).
+		Error
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
