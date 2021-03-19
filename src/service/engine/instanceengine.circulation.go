@@ -6,10 +6,7 @@
 package engine
 
 import (
-	"encoding/json"
 	"time"
-
-	"gorm.io/datatypes"
 
 	"workflow/src/global"
 	"workflow/src/global/constant"
@@ -30,13 +27,23 @@ func (i *InstanceEngine) CommonProcessing(edge map[string]interface{}, targetNod
 
 // processInstance流转处理
 func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newStates []map[string]interface{}) error {
-	// 获取最新的待处理人
-	relatedPerson := i.GenNewestRelatedPerson()
+	// 获取最新的相关者RelatedPerson
+	exist := false
+	for _, person := range i.ProcessInstance.RelatedPerson {
+		if uint(person) == i.currentUserId {
+			exist = true
+			break
+		}
+	}
+	if !exist {
+		i.ProcessInstance.RelatedPerson = append(i.ProcessInstance.RelatedPerson, int64(i.currentUserId))
+	}
+
 	state := util.MarshalToDbJson(newStates)
 
 	toUpdate := map[string]interface{}{
 		"state":          state,
-		"related_person": relatedPerson,
+		"related_person": i.ProcessInstance.RelatedPerson,
 		"is_end":         false,
 		"update_time":    time.Now().Local(),
 		"update_by":      i.currentUserId,
@@ -53,25 +60,4 @@ func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newState
 		Error
 
 	return err
-}
-
-// 获取最新的RelatedPerson
-// 如果没有当前用户则加上当前用户
-func (i *InstanceEngine) GenNewestRelatedPerson() datatypes.JSON {
-	var originPersons []interface{}
-	_ = json.Unmarshal(i.ProcessInstance.RelatedPerson, &originPersons)
-
-	exist := false
-	for _, person := range originPersons {
-		if uint(person.(float64)) == i.currentUserId {
-			exist = true
-			break
-		}
-	}
-
-	if !exist {
-		originPersons = append(originPersons, i.currentUserId)
-	}
-
-	return util.MarshalToBytes(originPersons)
 }

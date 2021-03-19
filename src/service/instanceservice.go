@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	. "github.com/ahmetb/go-linq/v3"
 	"github.com/labstack/gommon/log"
 	"gorm.io/gorm"
 
@@ -25,7 +26,7 @@ import (
 
 type InstanceService interface {
 	CreateProcessInstance(*request.ProcessInstanceRequest, uint) (*model.ProcessInstance, error)
-	Get(uint) (*model.ProcessInstance, error)
+	Get(uint, uint) (*model.ProcessInstance, error)
 	List(*request.InstanceListRequest, uint) (*response.PagingResponse, error)
 	HandleProcessInstance(*request.HandleInstancesRequest, uint) error
 }
@@ -186,8 +187,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// processInstance某些字段更新
-	relatedPerson, _ := json.Marshal([]uint{currentUserId})
-	processInstance.RelatedPerson = relatedPerson
+	processInstance.RelatedPerson = append(processInstance.RelatedPerson, int64(currentUserId))
 
 	// 开启事务
 	err = global.BankDb.Transaction(func(tx *gorm.DB) error {
@@ -206,8 +206,8 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		initialNode, _ := processEngine.GetInitialNode()
 		err = tx.Create(&model.CirculationHistory{
 			AuditableBase: model.AuditableBase{
-				CreateBy:   currentUserId,
-				UpdateBy:   currentUserId,
+				CreateBy: currentUserId,
+				UpdateBy: currentUserId,
 			},
 			Title:             processInstance.Title,
 			ProcessInstanceId: processInstance.Id,
@@ -242,9 +242,23 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 }
 
 // 获取单个ProcessInstance
-func (i *instanceService) Get(instanceId uint) (*model.ProcessInstance, error) {
+func (i *instanceService) Get(instanceId uint, currentUserId uint) (*model.ProcessInstance, error) {
 	var instance model.ProcessInstance
-	err := global.BankDb.Where("id=?", instanceId).First(&instance).Error
+	err := global.BankDb.
+		Where("id=?", instanceId).
+		First(&instance).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 必须是相关的才能看到
+	exist := From(instance.RelatedPerson).AnyWith(func(i interface{}) bool {
+		return i.(int64) == int64(currentUserId)
+	})
+	if !exist {
+		return nil, errors.New("记录不存在")
+	}
 
 	return &instance, err
 }

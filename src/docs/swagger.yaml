@@ -175,4 +175,27 @@ paths:
       summary: 处理/审批一个流程
       tags:
       - process-instances
+  /api/process-instances/{id}:
+    get:
+      parameters:
+      - description: request
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: current-user
+        in: header
+        name: current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 获取一个流程实例
+      tags:
+      - process-instances
 swagger: "2.0"

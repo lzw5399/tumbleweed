@@ -89,16 +89,23 @@ func HandleProcessInstance(c echo.Context) error {
 	return response.OkWithData(c, nil)
 }
 
-// 获取一个实例
+// @Tags process-instances
+// @Summary 获取一个流程实例
+// @Produce json
+// @param id path int true "request"
+// @param current-user header string true "current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances/{id} [GET]
 func GetProcessInstance(c echo.Context) error {
-	id, err := strconv.Atoi(c.QueryParam("id"))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	instance, err := instanceService.Get(uint(id))
+	currentUserId := util.GetCurrentUserId(c)
+	instance, err := instanceService.Get(uint(id), currentUserId)
 	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
+		return response.FailWithMsg(c, http.StatusNotFound, "记录不存在")
 	}
 
 	return response.OkWithData(c, instance)
