@@ -9,8 +9,9 @@ require (
 	github.com/jinzhu/configor v1.2.1
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/labstack/gommon v0.3.0
-	github.com/lib/pq v1.3.0 // indirect
+	github.com/lib/pq v1.3.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
 	github.com/swaggo/echo-swagger v1.1.0
 	github.com/swaggo/swag v1.7.0

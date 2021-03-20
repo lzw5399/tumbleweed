@@ -11,6 +11,7 @@ import (
 
 	"workflow/src/controller"
 	"workflow/src/global"
+	customMiddleware "workflow/src/middleware"
 )
 
 func Setup() *echo.Echo {
@@ -21,8 +22,8 @@ func Setup() *echo.Echo {
 
 	// probe
 	r.GET("/", controller.Index)
-	r.GET("/api/info/ready", controller.Readiness)
-	r.GET("/api/info/alive", controller.Liveliness)
+	r.GET("/info/ready", controller.Readiness)
+	r.GET("/info/alive", controller.Liveliness)
 
 	// swagger
 	if global.BankConfig.App.EnableSwagger {
@@ -30,8 +31,11 @@ func Setup() *echo.Echo {
 	}
 
 	// apis
-	RegisterProcessDefinition(r)
-	RegisterProcessInstance(r)
+	g := r.Group("/api", customMiddleware.MultiTenant, customMiddleware.Auth)
+	{
+		RegisterProcessDefinition(g)
+		RegisterProcessInstance(g)
+	}
 
 	return r
 }

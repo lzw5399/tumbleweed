@@ -6,6 +6,8 @@
 package global
 
 import (
+	"github.com/patrickmn/go-cache"
+
 	"workflow/src/config"
 
 	golog "github.com/op/go-logging"
@@ -16,4 +18,5 @@ var (
 	BankConfig config.Config
 	BankLogger *golog.Logger
 	BankDb     *gorm.DB
+	BankCache  *cache.Cache
 )

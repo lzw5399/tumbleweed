@@ -25,6 +25,123 @@ var doc = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/process-definitions": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-definitions"
+                ],
+                "summary": "获取流程定义列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "关键词",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "取的条数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "跳过的条数",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "asc或者是desc",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "排序键的名字，在各查询实现中默认值与可用值都不同",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "类别 1=我创建的  2=所有",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-definitions"
+                ],
+                "summary": "更新流程模板",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ProcessDefinitionRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "consumes": [
                     "application/json"
@@ -48,8 +165,97 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "current-user",
-                        "name": "current-user",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/process-definitions/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-definitions"
+                ],
+                "summary": "获取流程模板详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "request",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-definitions"
+                ],
+                "summary": "删除流程模板",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "request",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
                         "in": "header",
                         "required": true
                     }
@@ -78,6 +284,12 @@ var doc = `{
                 "summary": "获取流程实例列表",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "关键词",
+                        "name": "keyword",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "取的条数",
                         "name": "limit",
@@ -103,14 +315,21 @@ var doc = `{
                     },
                     {
                         "type": "integer",
-                        "description": "类别",
+                        "description": "类别 1=我的待办 2=我创建的 3=和我相关的 4=所有",
                         "name": "type",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "current-user",
-                        "name": "current-user",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
                         "in": "header",
                         "required": true
                     }
@@ -147,8 +366,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "current-user",
-                        "name": "current-user",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
                         "in": "header",
                         "required": true
                     }
@@ -187,8 +413,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "current-user",
-                        "name": "current-user",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
                         "in": "header",
                         "required": true
                     }
@@ -222,8 +455,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "current-user",
-                        "name": "current-user",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
                         "in": "header",
                         "required": true
                     }

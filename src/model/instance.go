@@ -23,5 +23,6 @@ type ProcessInstance struct {
 	State               datatypes.JSON `gorm:"type:jsonb" json:"state" form:"state"`                                                 // 状态信息
 	RelatedPerson       pq.Int64Array  `gorm:"type:integer[]; default:array[]::integer[]" json:"relatedPerson" form:"relatedPerson"` // 工单所有处理人
 	UrgeCount           int            `gorm:"type:integer; default:0" json:"urgeCount" form:"urgeCount"`                            // 催办次数
-	UrgeLastTime        time.Time      `json:"urgeLastTime" form:"urgeLastTime"`                                                     // 上一次催促时间
+	UrgeLastTime        time.Time      `gorm:"type:timestamp" json:"urgeLastTime" form:"urgeLastTime"`                  // 上一次催促时间
+	TenantId            int            `gorm:"index" json:"tenantId" form:"tenantId"`                                                // 租户id
 }

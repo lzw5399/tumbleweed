@@ -25,10 +25,10 @@ import (
 )
 
 type InstanceService interface {
-	CreateProcessInstance(*request.ProcessInstanceRequest, uint) (*model.ProcessInstance, error)
-	Get(uint, uint) (*model.ProcessInstance, error)
-	List(*request.InstanceListRequest, uint) (*response.PagingResponse, error)
-	HandleProcessInstance(*request.HandleInstancesRequest, uint) error
+	CreateProcessInstance(*request.ProcessInstanceRequest, uint, uint) (*model.ProcessInstance, error)
+	Get(uint, uint, uint) (*model.ProcessInstance, error)
+	List(*request.InstanceListRequest, uint, uint) (*response.PagingResponse, error)
+	HandleProcessInstance(*request.HandleInstancesRequest, uint, uint) (*model.ProcessInstance, error)
 }
 
 type instanceService struct {
@@ -39,12 +39,12 @@ func NewInstanceService() *instanceService {
 }
 
 // 创建实例
-func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint) (*model.ProcessInstance, error) {
+func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
 		currentInstanceState []map[string]interface{} // 变量值
 		err                  error
 		processDefinition    model.ProcessDefinition // 流程模板
-		processInstance      = r.ToProcessInstance(currentUserId)
+		processInstance      = r.ToProcessInstance(currentUserId, tenantId)
 		processEngine        *engine.ProcessEngine  // 流程定义引擎
 		instanceEngine       *engine.InstanceEngine // 流程实例引擎
 		condExprStatus       bool
@@ -55,6 +55,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 查询对应的流程模板
 	err = global.BankDb.
 		Where("id = ?", processInstance.ProcessDefinitionId).
+		Where("tenant_id = ?", tenantId).
 		First(&processDefinition).
 		Error
 	if err != nil {
@@ -242,10 +243,11 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 }
 
 // 获取单个ProcessInstance
-func (i *instanceService) Get(instanceId uint, currentUserId uint) (*model.ProcessInstance, error) {
+func (i *instanceService) Get(instanceId uint, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var instance model.ProcessInstance
 	err := global.BankDb.
 		Where("id=?", instanceId).
+		Where("tenant_id = ?", tenantId).
 		First(&instance).
 		Error
 	if err != nil {
@@ -264,24 +266,29 @@ func (i *instanceService) Get(instanceId uint, currentUserId uint) (*model.Proce
 }
 
 // 获取ProcessInstance列表
-func (i *instanceService) List(r *request.InstanceListRequest, currentUserId uint) (*response.PagingResponse, error) {
+func (i *instanceService) List(r *request.InstanceListRequest, currentUserId uint, tenantId uint) (*response.PagingResponse, error) {
 	var instances []model.ProcessInstance
-	db := global.BankDb.Model(&model.ProcessInstance{})
+	db := global.BankDb.Model(&model.ProcessInstance{}).Where("tenant_id = ?", tenantId)
 
 	// 根据type的不同有不同的逻辑
 	switch r.Type {
-	case constant.MyToDo:
+	case constant.I_MyToDo:
 		db = db.Joins("cross join jsonb_array_elements(state) as elem").Where(fmt.Sprintf("elem -> 'processor' @> '%v'", currentUserId))
 		break
-	case constant.ICreated:
+	case constant.I_ICreated:
 		db = db.Where("create_by=?", currentUserId)
 		break
-	case constant.IRelated:
+	case constant.I_IRelated:
 		db = db.Where(fmt.Sprintf("related_person @> '%v'", currentUserId))
 		break
-	case constant.All:
-	default:
+	case constant.I_All:
 		break
+	default:
+		return nil, errors.New("type不合法")
+	}
+
+	if r.Keyword != "" {
+		db = db.Where("title ~ ?", r.Keyword)
 	}
 
 	var count int64
@@ -298,28 +305,28 @@ func (i *instanceService) List(r *request.InstanceListRequest, currentUserId uin
 }
 
 // 处理/审批ProcessInstance
-func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint) error {
+func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
 		instanceEngine *engine.InstanceEngine
 		err            error
 	)
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId)
+	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 验证合法性(1.edgeId是否合法 2.当前用户是否有权限处理)
 	err = instanceEngine.ValidateHandleRequest(r, currentUserId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 处理
 	err = instanceEngine.Handle(r)
 
-	return err
+	return &instanceEngine.ProcessInstance, err
 }
 
 // 获取实例的某一个变量

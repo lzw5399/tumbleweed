@@ -50,7 +50,7 @@ func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newState
 	}
 
 	// 如果是跳转到结束节点，则需要修改节点状态
-	if targetNode["clazz"] == constant.END {
+	if targetNode["clazz"] == constant.End {
 		toUpdate["is_end"] = true
 	}
 

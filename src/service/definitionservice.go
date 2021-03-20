@@ -14,18 +14,22 @@ import (
 	"github.com/labstack/gommon/log"
 
 	"workflow/src/global"
+	"workflow/src/global/constant"
+	"workflow/src/global/shared"
 	"workflow/src/model"
 	"workflow/src/model/request"
+	"workflow/src/model/response"
 	"workflow/src/service/engine"
 	"workflow/src/util"
 )
 
 type DefinitionService interface {
-	CreateDefinition(*request.ProcessDefinitionRequest, uint) (*model.ProcessDefinition, error)
-	Validate(*request.ProcessDefinitionRequest, uint) error
-	UpdateDefinition(r *request.ProcessDefinitionRequest) error
-	DeleteDefinition(id uint) error
-	GetDefinition(id uint) (*model.ProcessDefinition, error)
+	CreateDefinition(*request.ProcessDefinitionRequest, uint, uint) (*model.ProcessDefinition, error)
+	Validate(*request.ProcessDefinitionRequest, uint, uint) error
+	UpdateDefinition(*request.ProcessDefinitionRequest, uint, uint) error
+	DeleteDefinition(id uint, tenantId uint) error
+	GetDefinition(id uint, tenantId uint) (*model.ProcessDefinition, error)
+	List(r *request.DefinitionListRequest, currentUserId uint, tenantId uint) (interface{}, error)
 }
 
 func NewDefinitionService() *definitionService {
@@ -35,11 +39,12 @@ func NewDefinitionService() *definitionService {
 type definitionService struct {
 }
 
-func (d *definitionService) GetDefinition(id uint) (*model.ProcessDefinition, error) {
+func (d *definitionService) GetDefinition(id uint, tenantId uint) (*model.ProcessDefinition, error) {
 	var definition model.ProcessDefinition
 
 	err := global.BankDb.
 		Where("id=?", id).
+		Where("tenant_id=?", tenantId).
 		First(&definition).Error
 	if err != nil {
 		log.Error(err)
@@ -50,12 +55,13 @@ func (d *definitionService) GetDefinition(id uint) (*model.ProcessDefinition, er
 }
 
 // 验证
-func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, excludeId uint) error {
+func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, excludeId uint, tenantId uint) error {
 	// 验证名称是否已存在
 	var c int64
 	global.BankDb.Model(&model.ProcessDefinition{}).
 		Where("name=?", r.Name).
 		Where("id!=?", excludeId).
+		Where("tenant_id=?", tenantId).
 		Count(&c)
 	if c != 0 {
 		return errors.New(fmt.Sprintf("当前名称为:\"%s\"的模板已存在", r.Name))
@@ -81,13 +87,15 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 }
 
 // 创建新的process流程
-func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint) (*model.ProcessDefinition, error) {
+func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint, tenantId uint) (*model.ProcessDefinition, error) {
 	var (
 		err error
 	)
 
 	processDefinition := r.ProcessDefinition()
 	processDefinition.CreateBy = currentUserId
+	processDefinition.UpdateBy = currentUserId
+	processDefinition.TenantId = int(tenantId)
 
 	if err = global.BankDb.Create(&processDefinition).Error; err != nil {
 		log.Error(err)
@@ -98,11 +106,22 @@ func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest
 }
 
 // 更新流程定义
-func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest) error {
+func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint, tenantId uint) error {
 	processDefinition := r.ProcessDefinition()
 
-	err := global.BankDb.
-		Where("id = ?", processDefinition.Id).
+	// 先查询
+	var count int64
+	err := global.BankDb.Model(&model.ProcessDefinition{}).
+		Where("id=?", processDefinition.Id).
+		Where("tenant_id=?", tenantId).
+		Count(&count).
+		Error
+	if err != nil || count == 0 {
+		return errors.New("记录不存在")
+	}
+
+	err = global.BankDb.
+		Model(&processDefinition).
 		Updates(map[string]interface{}{
 			"name":        processDefinition.Name,
 			"form_id":     processDefinition.FormId,
@@ -111,7 +130,7 @@ func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest
 			"task":        processDefinition.Task,
 			"notice":      processDefinition.Notice,
 			"remarks":     processDefinition.Remarks,
-			"update_by":   1, //todo currentid
+			"update_by":   currentUserId,
 			"update_time": time.Now().Local(),
 		}).Error
 
@@ -119,12 +138,55 @@ func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest
 }
 
 // 删除流程定义
-func (d *definitionService) DeleteDefinition(id uint) error {
-	err := global.BankDb.Delete(model.ProcessDefinition{}, "id=?", id).Error
+func (d *definitionService) DeleteDefinition(id uint, tenantId uint) error {
+	// 先查询
+	var count int64
+	err := global.BankDb.Model(&model.ProcessDefinition{}).
+		Where("id=?", id).
+		Where("tenant_id=?", tenantId).
+		Count(&count).
+		Error
+	if err != nil || count == 0 {
+		return errors.New("记录不存在")
+	}
+
+	err = global.BankDb.Delete(model.ProcessDefinition{}, "id=?", id).Error
 
 	if err != nil {
 		return errors.New("流程不存在")
 	}
 
 	return nil
+}
+
+func (d *definitionService) List(r *request.DefinitionListRequest, currentUserId uint, tenantId uint) (interface{}, error) {
+	var definitions []model.ProcessDefinition
+	db := global.BankDb.Model(&model.ProcessDefinition{}).Where("tenant_id = ?", tenantId)
+
+	// 根据type的不同有不同的逻辑
+	switch r.Type {
+	case constant.D_ICreated:
+		db = db.Where("create_by=?", currentUserId)
+		break
+	case constant.D_All:
+		break
+	default:
+		return nil, errors.New("type不合法")
+	}
+
+	if r.Keyword != "" {
+		db = db.Where("name ~ ?", r.Keyword)
+	}
+
+	var count int64
+	db.Count(&count)
+
+	db = shared.ApplyPaging(db, &r.PagingRequest)
+	err := db.Find(&definitions).Error
+
+	return &response.PagingResponse{
+		TotalCount:   count,
+		CurrentCount: int64(len(definitions)),
+		Data:         &definitions,
+	}, err
 }

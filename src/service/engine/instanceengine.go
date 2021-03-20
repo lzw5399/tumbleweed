@@ -23,6 +23,7 @@ type InstanceEngine struct {
 	ProcessDefinition   model.ProcessDefinition // 流程定义
 	definitionStructure DefinitionStructure     // 流程定义中的结构
 	currentUserId       uint                    // 当前用户id
+	tenantId            uint                    //租户id
 }
 
 func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*InstanceEngine, error) {
@@ -39,13 +40,14 @@ func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*Instance
 	}, nil
 }
 
-func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint) (*InstanceEngine, error) {
+func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint) (*InstanceEngine, error) {
 	var processInstance model.ProcessInstance
 	var processDefinition model.ProcessDefinition
 
 	err := global.BankDb.
 		Model(model.ProcessInstance{}).
 		Where("id = ?", processInstanceId).
+		Where("tenant_id = ?", tenantId).
 		First(&processInstance).
 		Error
 	if err != nil {
@@ -55,6 +57,7 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint) (
 	err = global.BankDb.
 		Model(model.ProcessDefinition{}).
 		Where("id = ?", processInstance.ProcessDefinitionId).
+		Where("tenant_id = ?", tenantId).
 		First(&processDefinition).
 		Error
 	if err != nil {
@@ -165,12 +168,14 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 
 	// 判断目标节点的类型，有不同的处理方式
 	switch targetNode["clazz"] {
-	case constant.USER_TASK:
+	case constant.UserTask:
 		newStates := i.GenStates([]map[string]interface{}{targetNode})
 		err := i.CommonProcessing(edge, targetNode, newStates)
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", targetNode["clazz"])
 	}
 
 	// 获取上一条的流转历史的CreateTime来计算CostDuration

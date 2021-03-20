@@ -59,36 +59,14 @@ info:
   contact: {}
 paths:
   /api/process-definitions:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/request.ProcessDefinitionRequest'
-      - description: current-user
-        in: header
-        name: current-user
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.HttpResponse'
-      summary: 创建流程模板
-      tags:
-      - process-definitions
-  /api/process-instances:
     get:
       consumes:
       - application/json
       parameters:
+      - description: 关键词
+        in: query
+        name: keyword
+        type: string
       - description: 取的条数
         in: query
         name: limit
@@ -105,13 +83,182 @@ paths:
         in: query
         name: sort
         type: string
-      - description: 类别
+      - description: 类别 1=我创建的  2=所有
         in: query
         name: type
         type: integer
-      - description: current-user
+      - description: wf-tenant-code
         in: header
-        name: current-user
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 获取流程定义列表
+      tags:
+      - process-definitions
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ProcessDefinitionRequest'
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 创建流程模板
+      tags:
+      - process-definitions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ProcessDefinitionRequest'
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 更新流程模板
+      tags:
+      - process-definitions
+  /api/process-definitions/{id}:
+    delete:
+      parameters:
+      - description: request
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 删除流程模板
+      tags:
+      - process-definitions
+    get:
+      parameters:
+      - description: request
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 获取流程模板详情
+      tags:
+      - process-definitions
+  /api/process-instances:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 取的条数
+        in: query
+        name: limit
+        type: integer
+      - description: 跳过的条数
+        in: query
+        name: offset
+        type: integer
+      - description: asc或者是desc
+        in: query
+        name: order
+        type: string
+      - description: 排序键的名字，在各查询实现中默认值与可用值都不同
+        in: query
+        name: sort
+        type: string
+      - description: 类别 1=我的待办 2=我创建的 3=和我相关的 4=所有
+        in: query
+        name: type
+        type: integer
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
         required: true
         type: string
       produces:
@@ -134,9 +281,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessInstanceRequest'
-      - description: current-user
+      - description: wf-tenant-code
         in: header
-        name: current-user
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
         required: true
         type: string
       produces:
@@ -160,9 +312,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.HandleInstancesRequest'
-      - description: current-user
+      - description: wf-tenant-code
         in: header
-        name: current-user
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
         required: true
         type: string
       produces:
@@ -183,9 +340,14 @@ paths:
         name: id
         required: true
         type: integer
-      - description: current-user
+      - description: wf-tenant-code
         in: header
-        name: current-user
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
         required: true
         type: string
       produces:

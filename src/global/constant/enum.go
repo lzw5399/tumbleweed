@@ -13,8 +13,14 @@ const (
 
 // process instance 的type类别
 const (
-	MyToDo   = iota + 1 // 我的待办
-	ICreated            // 我创建的
-	IRelated            // 和我相关的
-	All                 // 所有
+	I_MyToDo   = iota + 1 // 我的待办
+	I_ICreated            // 我创建的
+	I_IRelated            // 和我相关的
+	I_All                 // 所有
+)
+
+// process definition 的type类别
+const (
+	D_ICreated = iota + 1
+	D_All
 )

@@ -17,7 +17,7 @@ import (
 // 先使用此种方式传递当前用户的标识id
 func Auth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		currentUserId := c.Request().Header.Get("current-user")
+		currentUserId := c.Request().Header.Get("wf-current-user")
 		if currentUserId == "" {
 			return response.FailWithMsg(c, http.StatusUnauthorized, "未指定当前用户")
 		}

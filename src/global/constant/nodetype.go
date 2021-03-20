@@ -6,12 +6,12 @@
 package constant
 
 const (
-	EXCLUSIVE_GATEWAY = "exclusiveGateway" // 排他网关
-	PARALLEL_GATEWAY  = "parallelGateway"  // 并行网关
-	INCLUSIVE_GATEWAY = "inclusiveGateway" // 包容网关
-	START             = "start"            // 开始事件
-	USER_TASK         = "userTask"         // 用户任务
-	RECEIVE_TASK      = "receiveTask"      // 接收任务
-	SCRIPT_TASK       = "scriptTask"       // 脚本任务
-	END               = "end"              // 结束事件
+	ExclusiveGateway = "exclusiveGateway" // 排他网关
+	ParallelGateway  = "parallelGateway"  // 并行网关
+	InclusiveGateway = "inclusiveGateway" // 包容网关
+	START            = "start"            // 开始事件
+	UserTask         = "userTask"         // 用户任务
+	ReceiveTask      = "receiveTask"      // 接收任务
+	ScriptTask       = "scriptTask"       // 脚本任务
+	End              = "end"              // 结束事件
 )
