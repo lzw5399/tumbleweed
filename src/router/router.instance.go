@@ -6,14 +6,13 @@
 package router
 
 import (
-	"workflow/src/controller"
-	customMiddleware "workflow/src/middleware"
-
 	"github.com/labstack/echo/v4"
+
+	"workflow/src/controller"
 )
 
-func RegisterProcessInstance(r *echo.Echo) {
-	instanceGroup := r.Group("/api/process-instances", customMiddleware.Auth)
+func RegisterProcessInstance(r *echo.Group) {
+	instanceGroup := r.Group("/process-instances")
 	{
 		instanceGroup.POST("", controller.CreateProcessInstance)         // 新建流程
 		instanceGroup.GET("/:id", controller.GetProcessInstance)         // 获取

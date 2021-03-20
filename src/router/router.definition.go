@@ -6,18 +6,18 @@
 package router
 
 import (
-	"workflow/src/controller"
-	customMiddleware "workflow/src/middleware"
-
 	"github.com/labstack/echo/v4"
+
+	"workflow/src/controller"
 )
 
-func RegisterProcessDefinition(r *echo.Echo) {
-	processGroup := r.Group("/api/process-definitions", customMiddleware.Auth)
+func RegisterProcessDefinition(r *echo.Group) {
+	processGroup := r.Group("/process-definitions")
 	{
 		processGroup.POST("", controller.CreateProcessDefinition)       // 新建
 		processGroup.PUT("", controller.UpdateProcessDefinition)        // 修改
 		processGroup.DELETE("/:id", controller.DeleteProcessDefinition) // 删除
 		processGroup.GET("/:id", controller.GetProcessDefinition)       // 获取流程
+		processGroup.GET("", controller.ListProcessDefinition)          // 获取列表
 	}
 }

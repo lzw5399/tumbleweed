@@ -16,7 +16,7 @@ type ProcessInstanceRequest struct {
 	ProcessDefinitionId int    `json:"processDefinitionId" form:"processDefinitionId"` // 流程ID
 }
 
-func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint) model.ProcessInstance {
+func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId uint) model.ProcessInstance {
 	return model.ProcessInstance{
 		AuditableBase: model.AuditableBase{
 			CreateTime: time.Now().Local(),
@@ -26,6 +26,7 @@ func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint) model.Pro
 		},
 		Title:               i.Title,
 		ProcessDefinitionId: i.ProcessDefinitionId,
+		TenantId:            int(tenantId),
 	}
 }
 

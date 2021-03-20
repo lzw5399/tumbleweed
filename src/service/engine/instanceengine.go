@@ -23,6 +23,7 @@ type InstanceEngine struct {
 	ProcessDefinition   model.ProcessDefinition // 流程定义
 	definitionStructure DefinitionStructure     // 流程定义中的结构
 	currentUserId       uint                    // 当前用户id
+	tenantId            uint                    //租户id
 }
 
 func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*InstanceEngine, error) {
@@ -39,13 +40,14 @@ func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*Instance
 	}, nil
 }
 
-func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint) (*InstanceEngine, error) {
+func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint) (*InstanceEngine, error) {
 	var processInstance model.ProcessInstance
 	var processDefinition model.ProcessDefinition
 
 	err := global.BankDb.
 		Model(model.ProcessInstance{}).
 		Where("id = ?", processInstanceId).
+		Where("tenant_id = ?", tenantId).
 		First(&processInstance).
 		Error
 	if err != nil {
@@ -55,6 +57,7 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint) (
 	err = global.BankDb.
 		Model(model.ProcessDefinition{}).
 		Where("id = ?", processInstance.ProcessDefinitionId).
+		Where("tenant_id = ?", tenantId).
 		First(&processDefinition).
 		Error
 	if err != nil {
@@ -165,39 +168,31 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 
 	// 判断目标节点的类型，有不同的处理方式
 	switch targetNode["clazz"] {
-	case constant.USER_TASK:
+	case constant.UserTask:
 		newStates := i.GenStates([]map[string]interface{}{targetNode})
-		return i.CommonProcessing(edge, targetNode, newStates)
+		err := i.CommonProcessing(edge, targetNode, newStates)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", targetNode["clazz"])
 	}
 
-	// 更新上一条的流转历史的CostDuration
+	// 获取上一条的流转历史的CreateTime来计算CostDuration
 	var lastCirculation model.CirculationHistory
 	err = global.BankDb.
-		Model(&model.CirculationHistory{}).
 		Where("process_instance_id = ?", r.ProcessInstanceId).
 		Order("create_time desc").
-		Find(&lastCirculation).
-		Limit(1).
+		Select("create_time").
+		First(&lastCirculation).
 		Error
 	if err != nil {
 		return err
 	}
 	duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
-	err = global.BankDb.
-		Model(&model.CirculationHistory{}).
-		Where("id = ?", lastCirculation.Id).
-		Updates(map[string]interface{}{
-			"cost_duration": duration,
-			"update_time":   time.Now().Local(),
-			"update_by":     i.currentUserId,
-		}).
-		Error
-	if err != nil {
-		return err
-	}
 
 	// 创建新的一条流转历史
-	sourceNode, _ := i.GetNode(edge["target"].(string))
+	sourceNode, _ := i.GetNode(edge["source"].(string))
 	cirHistory := model.CirculationHistory{
 		AuditableBase: model.AuditableBase{
 			CreateBy: i.currentUserId,
@@ -210,7 +205,7 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		TargetId:          targetNode["id"].(string),
 		Circulation:       edge["label"].(string),
 		ProcessorId:       i.currentUserId,
-		CostDuration:      "",
+		CostDuration:      duration,
 		Remarks:           r.Remarks,
 	}
 

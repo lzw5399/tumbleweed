@@ -77,7 +77,6 @@ func FailWithMsg(c echo.Context, status int, err interface{}) error {
 
 	// 404
 	case http.StatusNotFound:
-		msg = "记录未找到"
 
 	// 500
 	case http.StatusInternalServerError:

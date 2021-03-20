@@ -26,7 +26,8 @@ var (
 // @Accept  json
 // @Produce json
 // @param request body request.ProcessInstanceRequest true "request"
-// @param current-user header string true "current-user"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances [post]
 func CreateProcessInstance(c echo.Context) error {
@@ -36,7 +37,8 @@ func CreateProcessInstance(c echo.Context) error {
 	}
 
 	currentUserId := util.GetCurrentUserId(c)
-	processInstance, err := instanceService.CreateProcessInstance(&r, currentUserId)
+	tenantId := util.GetCurrentTenantId(c)
+	processInstance, err := instanceService.CreateProcessInstance(&r, currentUserId, tenantId)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
@@ -49,7 +51,8 @@ func CreateProcessInstance(c echo.Context) error {
 // @Accept  json
 // @Produce json
 // @param request query request.InstanceListRequest true "request"
-// @param current-user header string true "current-user"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances [GET]
 func ListProcessInstances(c echo.Context) error {
@@ -59,7 +62,8 @@ func ListProcessInstances(c echo.Context) error {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	instances, err := instanceService.List(&r, util.GetCurrentUserId(c))
+	tenantId := util.GetCurrentTenantId(c)
+	instances, err := instanceService.List(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
@@ -72,7 +76,8 @@ func ListProcessInstances(c echo.Context) error {
 // @Accept  json
 // @Produce json
 // @param request body request.HandleInstancesRequest true "request"
-// @param current-user header string true "current-user"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances/_handle [POST]
 func HandleProcessInstance(c echo.Context) error {
@@ -81,24 +86,34 @@ func HandleProcessInstance(c echo.Context) error {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	err := instanceService.HandleProcessInstance(&r, util.GetCurrentUserId(c))
+	tenantId := util.GetCurrentTenantId(c)
+	instance, err := instanceService.HandleProcessInstance(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusBadRequest, err)
 	}
 
-	return response.OkWithData(c, nil)
+	return response.OkWithData(c, instance)
 }
 
-// 获取一个实例
+// @Tags process-instances
+// @Summary 获取一个流程实例
+// @Produce json
+// @param id path int true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances/{id} [GET]
 func GetProcessInstance(c echo.Context) error {
-	id, err := strconv.Atoi(c.QueryParam("id"))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
-	instance, err := instanceService.Get(uint(id))
+	currentUserId := util.GetCurrentUserId(c)
+	tenantId := util.GetCurrentTenantId(c)
+	instance, err := instanceService.Get(uint(id), currentUserId, tenantId)
 	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
+		return response.FailWithMsg(c, http.StatusNotFound, "记录不存在")
 	}
 
 	return response.OkWithData(c, instance)

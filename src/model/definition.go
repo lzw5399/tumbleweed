@@ -19,5 +19,6 @@ type ProcessDefinition struct {
 	Task        datatypes.JSON `gorm:"column:task; type:jsonb" jsonb:"task" form:"task"`                                   // 任务ID, array, 可执行多个任务，可以当成通知任务，每个节点都会去执行
 	SubmitCount int            `gorm:"column:submit_count; type:integer; default:0" json:"submitCount" form:"submitCount"` // 提交统计
 	Notice      datatypes.JSON `gorm:"column:notice; type:jsonb" json:"notice" form:"notice"`                              // 绑定通知
+	TenantId    int            `gorm:"index" json:"tenantId" form:"tenantId"`                                              // 租户id
 	Remarks     string         `gorm:"column:remarks; type:text" json:"remarks" form:"remarks"`                            // 流程备注
 }

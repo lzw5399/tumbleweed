@@ -26,9 +26,10 @@ var (
 // @Accept  json
 // @Produce json
 // @param request body request.ProcessDefinitionRequest true "request"
-// @param current-user header string true "current-user"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [post]
+// @Router /api/process-definitions [POST]
 func CreateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -40,14 +41,15 @@ func CreateProcessDefinition(c echo.Context) error {
 	}
 
 	// 验证
-	err = definitionService.Validate(&r, 0)
+	tenantId := util.GetCurrentTenantId(c)
+	err = definitionService.Validate(&r, 0, tenantId)
 	if err != nil {
 		return response.BadRequestWithMessage(c, err)
 	}
 
 	// 创建
 	currentUserId := util.GetCurrentUserId(c)
-	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId)
+	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
 		log.Printf("CreateProcess错误，原因: %s", err.Error())
 		return response.Failed(c, http.StatusInternalServerError)
@@ -56,7 +58,15 @@ func CreateProcessDefinition(c echo.Context) error {
 	return response.OkWithData(c, processDefinition)
 }
 
-// 更新模板
+// @Tags process-definitions
+// @Summary 更新流程模板
+// @Accept  json
+// @Produce json
+// @param request body request.ProcessDefinitionRequest true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-definitions [PUT]
 func UpdateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -68,48 +78,91 @@ func UpdateProcessDefinition(c echo.Context) error {
 	}
 
 	// 验证
-	err = definitionService.Validate(&r, r.Id)
+	tenantId := util.GetCurrentTenantId(c)
+	err = definitionService.Validate(&r, r.Id, tenantId)
 	if err != nil {
 		return response.BadRequestWithMessage(c, err)
 	}
 
-	err = definitionService.UpdateDefinition(&r)
+	currentUserId := util.GetCurrentUserId(c)
+	err = definitionService.UpdateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
 		log.Printf("UpdateProcessDefinition错误，原因: %s", err.Error())
-		return response.Failed(c, http.StatusInternalServerError)
+		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
 
 	return response.Ok(c)
 }
 
-// 删除流程
+// @Tags process-definitions
+// @Summary 删除流程模板
+// @Produce json
+// @param id path string true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-definitions/{id} [DELETE]
 func DeleteProcessDefinition(c echo.Context) error {
 	definitionId := c.Param("id")
 	if definitionId == "" {
 		return response.BadRequestWithMessage(c, "参数不正确，请确定参数processDefinitionId是否传递")
 	}
 
-	err := definitionService.DeleteDefinition(util.StringToUint(definitionId))
+	tenantId := util.GetCurrentTenantId(c)
+	err := definitionService.DeleteDefinition(util.StringToUint(definitionId), tenantId)
 	if err != nil {
-		return response.Failed(c, http.StatusInternalServerError)
+		return response.Failed(c, http.StatusNotFound)
 	}
 
 	return response.Ok(c)
 }
 
-// 流程详情
+// @Tags process-definitions
+// @Summary 获取流程模板详情
+// @Produce json
+// @param id path string true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-definitions/{id} [GET]
 func GetProcessDefinition(c echo.Context) error {
 	definitionId := c.Param("id")
 	if definitionId == "" {
 		return response.BadRequestWithMessage(c, "参数不正确，请确定参数processDefinitionId是否传递")
 	}
 
-	definition, err := definitionService.GetDefinition(util.StringToUint(definitionId))
+	tenantId := util.GetCurrentTenantId(c)
+	definition, err := definitionService.GetDefinition(util.StringToUint(definitionId), tenantId)
 	if err != nil {
 		return response.Failed(c, http.StatusNotFound)
 	}
 
 	return response.OkWithData(c, definition)
+}
+
+// @Tags process-definitions
+// @Summary 获取流程定义列表
+// @Accept  json
+// @Produce json
+// @param request query request.DefinitionListRequest true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-definitions [GET]
+func ListProcessDefinition(c echo.Context) error {
+	// 从queryString获取分页参数
+	var r request.DefinitionListRequest
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
+	}
+
+	tenantId := util.GetCurrentTenantId(c)
+	instances, err := definitionService.List(&r, util.GetCurrentUserId(c), tenantId)
+	if err != nil {
+		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+	}
+
+	return response.OkWithData(c, instances)
 }
 
 //// 分类流程列表
