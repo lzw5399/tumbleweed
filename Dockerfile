@@ -1,5 +1,4 @@
 # build stage
-#FROM docker-mirror.sh.synyi.com/golang:1.16 as builder
 FROM golang:1.16 as builder
 
 ENV GO111MODULE=on \
@@ -15,7 +14,7 @@ RUN mkdir publish && cp workflow publish && \
     mkdir publish/config && \
     cp src/config/appsettings.yaml publish/config/
 
-FROM docker-mirror.sh.synyi.com/alpine:3.12
+FROM alpine:3.12
 
 WORKDIR /app
 
