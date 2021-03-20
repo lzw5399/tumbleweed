@@ -7,7 +7,6 @@ package service
 
 import (
 	"log"
-	"time"
 
 	. "github.com/ahmetb/go-linq/v3"
 
@@ -37,7 +36,7 @@ func (u *roleUsersService) BatchSyncRoleUsers(r *request.BatchSyncRoleUsersReque
 
 // 批量同步外部系统的角色用户对应关系
 func (u *roleUsersService) BatchSyncRoleUsersAsync(r *request.BatchSyncRoleUsersRequest, tenantId uint) {
-	var roleIds []string
+	var roleIds []int
 	From(r.RoleUsersList).Select(func(i interface{}) interface{} {
 		return i.(request.SyncRoleUsersRequest).RoleId
 	}).ToSlice(&roleIds)
@@ -57,12 +56,7 @@ func (u *roleUsersService) BatchSyncRoleUsersAsync(r *request.BatchSyncRoleUsers
 	var roleUsersList []model.RoleUsers
 	From(r.RoleUsersList).Select(func(i interface{}) interface{} {
 		re := i.(request.SyncRoleUsersRequest)
-		return model.RoleUsers{
-			RoleId:     re.RoleId,
-			UserIds:    re.UserIds,
-			TenantId:   int(tenantId),
-			CreateTime: time.Now().Local(),
-		}
+		return re.ToRoleUsers(tenantId)
 	}).ToSlice(&roleUsersList)
 
 	// 批量创建数据

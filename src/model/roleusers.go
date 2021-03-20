@@ -14,8 +14,8 @@ import (
 // 角色用户: 一条数据是一个角色
 type RoleUsers struct {
 	EntityBase
-	RoleId     string         `gorm:"index" json:"roleId" form:"roleId"`                                  // 外部系统的角色Id
-	UserIds    pq.StringArray `gorm:"type:text[]; default:array[]::text[]" json:"userIds" form:"userIds"` // 外部系统的用户Id数组
-	TenantId   int            `gorm:"index" json:"tenantId" form:"tenantId"`                              // 租户id
-	CreateTime time.Time      `gorm:"default:now();type:timestamp" json:"createTime" form:"createTime"`
+	RoleId     int           `gorm:"index" json:"roleId" form:"roleId"`                                        // 外部系统的角色Id
+	UserIds    pq.Int64Array `gorm:"type:integer[]; default:array[]::integer[]" json:"userIds" form:"userIds"` // 外部系统的用户Id数组
+	TenantId   int           `gorm:"index" json:"tenantId" form:"tenantId"`                                    // 租户id
+	CreateTime time.Time     `gorm:"default:now();type:timestamp" json:"createTime" form:"createTime"`
 }

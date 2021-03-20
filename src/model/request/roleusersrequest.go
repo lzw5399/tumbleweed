@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"workflow/src/model"
+	"workflow/src/util"
 )
 
 type BatchSyncRoleUsersRequest struct {
@@ -16,14 +17,14 @@ type BatchSyncRoleUsersRequest struct {
 }
 
 type SyncRoleUsersRequest struct {
-	RoleId  string   `json:"roleId"`
-	UserIds []string `json:"userIds"`
+	RoleId  int   `json:"roleId"`
+	UserIds []int `json:"userIds"`
 }
 
-func (s *SyncRoleUsersRequest) ToRoleUsers(tenantId uint) model.RoleUsers{
+func (s *SyncRoleUsersRequest) ToRoleUsers(tenantId uint) model.RoleUsers {
 	return model.RoleUsers{
 		RoleId:     s.RoleId,
-		UserIds:    s.UserIds,
+		UserIds:    util.ParseToInt64Array(s.UserIds),
 		TenantId:   int(tenantId),
 		CreateTime: time.Now().Local(),
 	}

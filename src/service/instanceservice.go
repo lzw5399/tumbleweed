@@ -68,7 +68,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		return nil, err
 	}
 
-	instanceEngine, err = engine.NewInstanceEngine(processDefinition, currentUserId)
+	instanceEngine, err = engine.NewInstanceEngine(processDefinition, currentUserId, tenantId)
 	if err != nil {
 		return nil, err
 	}

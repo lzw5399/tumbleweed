@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"workflow/src/global"
@@ -26,7 +27,7 @@ type InstanceEngine struct {
 	tenantId            uint                    //租户id
 }
 
-func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*InstanceEngine, error) {
+func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint, tenantId uint) (*InstanceEngine, error) {
 	var definitionStructure DefinitionStructure
 	err := json.Unmarshal(p.Structure, &definitionStructure)
 	if err != nil {
@@ -37,6 +38,7 @@ func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint) (*Instance
 		ProcessDefinition:   model.ProcessDefinition{},
 		definitionStructure: definitionStructure,
 		currentUserId:       currentUserId,
+		tenantId:            tenantId,
 	}, nil
 }
 
@@ -75,6 +77,7 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, t
 		ProcessDefinition:   processDefinition,
 		definitionStructure: definitionStructure,
 		currentUserId:       currentUserId,
+		tenantId:            tenantId,
 	}, nil
 }
 
@@ -109,9 +112,7 @@ func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, er
 	}
 
 	// 获取初始的states
-	initialStates := i.GenStates([]map[string]interface{}{nextNode})
-
-	return initialStates, nil
+	return i.GenStates([]map[string]interface{}{nextNode})
 }
 
 // 验证入参合法性
@@ -179,8 +180,11 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 	switch targetNode["clazz"] {
 	case constant.UserTask:
 	case constant.End:
-		newStates := i.GenStates([]map[string]interface{}{targetNode})
-		err := i.CommonProcessing(edge, targetNode, newStates)
+		newStates, err := i.GenStates([]map[string]interface{}{targetNode})
+		if err != nil {
+			return err
+		}
+		err = i.CommonProcessing(edge, targetNode, newStates)
 		if err != nil {
 			return err
 		}
@@ -280,14 +284,31 @@ func (i *InstanceEngine) GetCurrentInstanceState() ([]map[string]interface{}, er
 }
 
 // 获取数据库process_instance表存储的state字段的对象
-func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) []map[string]interface{} {
+func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) ([]map[string]interface{}, error) {
 	states := make([]map[string]interface{}, 0)
 	for _, node := range nodes {
 		state := make(map[string]interface{})
 		state["id"] = node["id"]
-		state["processMethod"] = node["assignType"]
-		state["processor"] = node["assignValue"]
 		state["label"] = node["label"]
+
+		switch node["assignType"].(string) {
+		case "role": // 审批者是role, 需要转成person
+			state["processMethod"] = "person"
+			processors, err := i.getUserIdsByRoleIds(node["assignValue"])
+			if err != nil {
+				return nil, err
+			}
+			state["processor"] = processors
+			state["originProcessMethod"] = node["assignType"]
+			state["originProcessor"] = node["assignValue"]
+			break
+		case "person": // 审批者是person的话直接用原值
+			state["processMethod"] = node["assignType"]
+			state["processor"] = node["assignValue"]
+			break
+		default:
+			return nil, fmt.Errorf("不支持的处理人类型: %s", node["assignType"].(string))
+		}
 
 		// 获取可用的edge
 		availableEdges := make([]map[string]interface{}, 0, 1)
@@ -301,5 +322,44 @@ func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) []map[string]
 		states = append(states, state)
 	}
 
-	return states
+	return states, nil
+}
+
+func (i *InstanceEngine) getUserIdsByRoleIds(ids interface{}) ([]int, error) {
+	bytes := util.MarshalToBytes(ids)
+	var roleIds []int
+	err := json.Unmarshal(bytes, &roleIds)
+	if err != nil {
+		return nil, err
+	}
+
+	var roleUsersList []model.RoleUsers
+	err = global.BankDb.
+		Model(&model.RoleUsers{}).
+		Where("tenant_id = ?", i.tenantId).
+		Where("role_id in ?", roleIds).
+		Find(&roleUsersList).
+		Error
+	if err != nil {
+		log.Printf("查询roleuser失败，原因:%s", err.Error())
+		return nil, err
+	}
+
+	// 使用map来提高查询效率
+	finalUserIdMap := make(map[int64]bool, 0)
+	for _, roleUsers := range roleUsersList {
+		for _, userId := range roleUsers.UserIds {
+			if _, present := finalUserIdMap[userId]; !present {
+				finalUserIdMap[userId] = true
+			}
+		}
+	}
+
+	// 转成[]string
+	finalUserIds := make([]int, 0)
+	for k, _ := range finalUserIdMap {
+		finalUserIds = append(finalUserIds, int(k))
+	}
+
+	return finalUserIds, nil
 }
