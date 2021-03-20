@@ -65,7 +65,7 @@ func doMigration() {
 	err = global.BankDb.AutoMigrate(
 		&model.ProcessDefinition{}, &model.ProcessInstance{},
 		&model.Classify{}, &model.CirculationHistory{},
-		&model.Tenant{})
+		&model.Tenant{}, &model.RoleUsers{})
 	if err != nil {
 		log.Fatalf("迁移表结构发生错误，错误信息为:%s", err.Error())
 	}

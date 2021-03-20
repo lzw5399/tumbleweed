@@ -1,4 +1,11 @@
 definitions:
+  request.BatchSyncRoleUsersRequest:
+    properties:
+      roleUsersList:
+        items:
+          $ref: '#/definitions/request.SyncRoleUsersRequest'
+        type: array
+    type: object
   request.HandleInstancesRequest:
     properties:
       edgeId:
@@ -45,6 +52,15 @@ definitions:
       title:
         description: 流程实例标题
         type: string
+    type: object
+  request.SyncRoleUsersRequest:
+    properties:
+      roleId:
+        type: string
+      userIds:
+        items:
+          type: string
+        type: array
     type: object
   response.HttpResponse:
     properties:
@@ -360,4 +376,66 @@ paths:
       summary: 获取一个流程实例
       tags:
       - process-instances
+  /api/role-users:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.SyncRoleUsersRequest'
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 同步(创建或更新)角色用户映射关系
+      tags:
+      - role-users
+  /api/role-users/_batch:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.BatchSyncRoleUsersRequest'
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 批量同步(创建或更新)角色用户映射关系
+      tags:
+      - role-users
 swagger: "2.0"
