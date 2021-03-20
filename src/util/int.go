@@ -28,3 +28,12 @@ func InterfaceToUint(i interface{}) uint {
 
 	return StringToUint(str)
 }
+
+func ParseToInt64Array(arr []int) []int64 {
+	intArr := make([]int64, len(arr))
+	for index, item := range arr {
+		intArr[index] = int64(item)
+	}
+
+	return intArr
+}
