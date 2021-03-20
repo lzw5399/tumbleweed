@@ -1,7 +1,7 @@
 /**
  * @Author: lzw5399
  * @Date: 2021/3/20 14:57
- * @Desc:
+ * @Desc: 多租户中间件
  */
 package middleware
 
@@ -57,6 +57,7 @@ func MultiTenant(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+// 从缓存中获取所有的租户信息
 func GetTenants() []model.Tenant {
 	var tenants []model.Tenant
 
@@ -70,6 +71,7 @@ func GetTenants() []model.Tenant {
 	return tenants
 }
 
+// 更新新的租户信息到缓存中
 func UpdateTenantCache() *[]model.Tenant {
 	var tenants []model.Tenant
 	global.BankDb.

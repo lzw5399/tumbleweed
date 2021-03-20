@@ -130,13 +130,22 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 	// todo 这里先判断[0]
 	state := currentInstanceState[0]
 	if currentEdge["source"].(string) != state["id"].(string) {
-		return fmt.Errorf("当前传入的edgeId: %v 不合法, 请检查", r.EdgeID)
+		return errors.New("当前审批不合法, 请检查")
+	}
+
+	// 判断当前流程实例状态是否已结束或者被否决
+	if i.ProcessInstance.IsEnd {
+		return errors.New("当前流程已结束, 不能进行审批操作")
+	}
+
+	if i.ProcessInstance.IsDenied {
+		return errors.New("当前流程已被否决, 不能进行审批操作")
 	}
 
 	// 判断当前角色是否有权限
 	processors, succeed := state["processor"].([]interface{})
 	if !succeed {
-		return errors.New("当前processInstance的state状态不合法, 请检查")
+		return errors.New("当前流程的state状态不合法, 请检查")
 	}
 
 	hasPermission := false
@@ -169,6 +178,7 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 	// 判断目标节点的类型，有不同的处理方式
 	switch targetNode["clazz"] {
 	case constant.UserTask:
+	case constant.End:
 		newStates := i.GenStates([]map[string]interface{}{targetNode})
 		err := i.CommonProcessing(edge, targetNode, newStates)
 		if err != nil {

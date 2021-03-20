@@ -457,9 +457,114 @@
                     }
                 }
             }
+        },
+        "/api/role-users": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "role-users"
+                ],
+                "summary": "同步(创建或更新)角色用户映射关系",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.SyncRoleUsersRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/role-users/_batch": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "role-users"
+                ],
+                "summary": "批量同步(创建或更新)角色用户映射关系",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.BatchSyncRoleUsersRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "request.BatchSyncRoleUsersRequest": {
+            "type": "object",
+            "properties": {
+                "roleUsersList": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/request.SyncRoleUsersRequest"
+                    }
+                }
+            }
+        },
         "request.HandleInstancesRequest": {
             "type": "object",
             "properties": {
@@ -523,6 +628,20 @@
                 "title": {
                     "description": "流程实例标题",
                     "type": "string"
+                }
+            }
+        },
+        "request.SyncRoleUsersRequest": {
+            "type": "object",
+            "properties": {
+                "roleId": {
+                    "type": "string"
+                },
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

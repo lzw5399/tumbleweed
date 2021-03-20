@@ -33,8 +33,9 @@ func Setup() *echo.Echo {
 	// apis
 	g := r.Group("/api", customMiddleware.MultiTenant, customMiddleware.Auth)
 	{
-		RegisterProcessDefinition(g)
-		RegisterProcessInstance(g)
+		RegisterProcessDefinition(g) // 流程定义
+		RegisterProcessInstance(g)   // 流程实例
+		RegisterRoleUsers(g)         // 外部系统的角色用户映射
 	}
 
 	return r
