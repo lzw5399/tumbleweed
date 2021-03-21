@@ -30,6 +30,11 @@ func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId 
 	}
 }
 
+type GetInstanceRequest struct {
+	Id                  int  `json:"id" form:"id" path:"id"`
+	IncludeProcessTrain bool `json:"includeProcessTrain" body:"includeProcessTrain"`
+}
+
 type GetVariableRequest struct {
 	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty"`
 	VariableName string `json:"variableName,omitempty" form:"variableName,omitempty"`

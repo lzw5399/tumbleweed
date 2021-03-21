@@ -454,6 +454,54 @@ var doc = `{
                         "required": true
                     },
                     {
+                        "type": "boolean",
+                        "description": "request",
+                        "name": "includeProcessTrain",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/process-instances/{id}/train-nodes": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-instances"
+                ],
+                "summary": "获取流程链路",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "request",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "type": "string",
                         "description": "wf-tenant-code",
                         "name": "wf-tenant-code",
@@ -655,12 +703,12 @@ var doc = `{
             "type": "object",
             "properties": {
                 "roleId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "userIds": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "type": "integer"
                     }
                 }
             }

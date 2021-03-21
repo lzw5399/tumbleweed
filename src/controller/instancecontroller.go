@@ -99,24 +99,48 @@ func HandleProcessInstance(c echo.Context) error {
 // @Summary 获取一个流程实例
 // @Produce json
 // @param id path int true "request"
+// @param includeProcessTrain query bool false "request"
 // @param wf-tenant-code header string true "wf-tenant-code"
 // @param wf-current-user header string true "wf-current-user"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances/{id} [GET]
 func GetProcessInstance(c echo.Context) error {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	var r request.GetInstanceRequest
+	if err := c.Bind(&r); err != nil {
 		return response.Failed(c, http.StatusBadRequest)
 	}
 
 	currentUserId := util.GetCurrentUserId(c)
 	tenantId := util.GetCurrentTenantId(c)
-	instance, err := instanceService.Get(uint(id), currentUserId, tenantId)
+	instance, err := instanceService.Get(&r, currentUserId, tenantId)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusNotFound, "记录不存在")
 	}
 
 	return response.OkWithData(c, instance)
+}
+
+// @Tags process-instances
+// @Summary 获取流程链路
+// @Produce json
+// @param id path int true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances/{id}/train-nodes [GET]
+func GetProcessTrain(c echo.Context) error {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return response.Failed(c, http.StatusBadRequest)
+	}
+
+	tenantId := util.GetCurrentTenantId(c)
+	trainNodes, err := instanceService.GetProcessTrain(nil, uint(id), tenantId)
+	if err != nil {
+		return response.InternalServerErrorWithMessage(c, err)
+	}
+
+	return response.OkWithData(c, trainNodes)
 }
 
 // 获取流程实例中的变量

@@ -56,10 +56,10 @@ definitions:
   request.SyncRoleUsersRequest:
     properties:
       roleId:
-        type: string
+        type: integer
       userIds:
         items:
-          type: string
+          type: integer
         type: array
     type: object
   response.HttpResponse:
@@ -356,6 +356,10 @@ paths:
         name: id
         required: true
         type: integer
+      - description: request
+        in: query
+        name: includeProcessTrain
+        type: boolean
       - description: wf-tenant-code
         in: header
         name: wf-tenant-code
@@ -374,6 +378,34 @@ paths:
           schema:
             $ref: '#/definitions/response.HttpResponse'
       summary: 获取一个流程实例
+      tags:
+      - process-instances
+  /api/process-instances/{id}/train-nodes:
+    get:
+      parameters:
+      - description: request
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 获取流程链路
       tags:
       - process-instances
   /api/role-users:

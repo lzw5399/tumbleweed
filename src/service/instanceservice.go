@@ -26,9 +26,10 @@ import (
 
 type InstanceService interface {
 	CreateProcessInstance(*request.ProcessInstanceRequest, uint, uint) (*model.ProcessInstance, error)
-	Get(uint, uint, uint) (*model.ProcessInstance, error)
+	Get(*request.GetInstanceRequest, uint, uint) (*response.ProcessInstanceResponse, error)
 	List(*request.InstanceListRequest, uint, uint) (*response.PagingResponse, error)
 	HandleProcessInstance(*request.HandleInstancesRequest, uint, uint) (*model.ProcessInstance, error)
+	GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error)
 }
 
 type instanceService struct {
@@ -243,10 +244,10 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 }
 
 // 获取单个ProcessInstance
-func (i *instanceService) Get(instanceId uint, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
+func (i *instanceService) Get(r *request.GetInstanceRequest, currentUserId uint, tenantId uint) (*response.ProcessInstanceResponse, error) {
 	var instance model.ProcessInstance
 	err := global.BankDb.
-		Where("id=?", instanceId).
+		Where("id=?", r.Id).
 		Where("tenant_id = ?", tenantId).
 		First(&instance).
 		Error
@@ -262,7 +263,20 @@ func (i *instanceService) Get(instanceId uint, currentUserId uint, tenantId uint
 		return nil, errors.New("记录不存在")
 	}
 
-	return &instance, err
+	resp := response.ProcessInstanceResponse{
+		ProcessInstance: instance,
+	}
+
+	// 包括流程链路
+	if r.IncludeProcessTrain {
+		trainNodes, err := i.GetProcessTrain(&instance, instance.Id, tenantId)
+		if err != nil {
+			return nil, err
+		}
+		resp.ProcessChainNodes = trainNodes
+	}
+
+	return &resp, nil
 }
 
 // 获取ProcessInstance列表
@@ -327,6 +341,109 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	err = instanceEngine.Handle(r)
 
 	return &instanceEngine.ProcessInstance, err
+}
+
+// 获取流程链(用于展示)
+func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error) {
+	// 获取流程实例(如果为空)
+	var instance model.ProcessInstance
+	if pi == nil {
+		err := global.BankDb.
+			Where("id=?", instanceId).
+			Where("tenant_id = ?", tenantId).
+			First(&instance).
+			Error
+		if err != nil {
+		}
+	} else {
+		instance = *pi
+	}
+
+	// 获取流程模板
+	var definition model.ProcessDefinition
+	err := global.BankDb.
+		Where("id=?", instance.ProcessDefinitionId).
+		Where("tenant_id = ?", tenantId).
+		First(&definition).
+		Error
+	if err != nil {
+		return nil, errors.New("当前流程对应的模板为空")
+	}
+
+	// 获取模板结构
+	var definitionStructure engine.DefinitionStructure
+	err = json.Unmarshal(definition.Structure, &definitionStructure)
+	if err != nil {
+		return nil, errors.New("流程模板的结构不合法，请检查")
+	}
+
+	// 获取实例的当前nodeId
+	var currentInstanceState []map[string]interface{}
+	err = json.Unmarshal(instance.State, &currentInstanceState)
+	if err != nil {
+		return nil, errors.New("当前流程实例的状态不合法, 请检查")
+	}
+	// todo 暂不支持并行网关，所以先用0
+	currentNodeId := currentInstanceState[0]["id"].(string)
+
+	shownNodes := make([]map[string]interface{}, 0) // 显示的节点
+	currentNodeSortNumber := 0                      // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
+	for _, node := range definitionStructure["nodes"] {
+		// 隐藏节点就跳过
+		if node["isHideNode"] != nil && node["isHideNode"].(bool) == true {
+			continue
+		}
+		// 获取当前节点的顺序
+		if node["id"].(string) == currentNodeId {
+			currentNodeSortNumber = util.StringToInt(node["sort"].(string))
+		}
+		shownNodes = append(shownNodes, node)
+	}
+
+	var trainNodes []response.ProcessChainNode
+	From(shownNodes).Select(func(i interface{}) interface{} {
+		node := i.(map[string]interface{})
+		currentNodeSort := util.StringToInt(node["sort"].(string))
+
+		var status constant.ChainNodeStatus
+		switch {
+		case currentNodeSort < currentNodeSortNumber:
+			status = 1 // 已处理
+		case currentNodeSort > currentNodeSortNumber:
+			status = 3 // 未处理的后续节点
+		default:
+			// 如果是结束节点，则不显示为当前节点，显示为已处理
+			if node["clazz"].(string) == constant.End {
+				status = 1
+			} else { // 其他的等于情况显示为当前节点
+				status = 2 // 当前节点
+			}
+		}
+
+		var nodeType int
+		switch node["clazz"].(string) {
+		case constant.START:
+			nodeType = 1
+		case constant.UserTask:
+			nodeType = 2
+		case constant.ExclusiveGateway:
+			nodeType = 3
+		case constant.End:
+			nodeType = 4
+		}
+
+		return response.ProcessChainNode{
+			Name:     node["label"].(string),
+			Id:       node["id"].(string),
+			Status:   status,
+			Sort:     currentNodeSort,
+			NodeType: nodeType,
+		}
+	}).OrderBy(func(i interface{}) interface{} {
+		return i.(response.ProcessChainNode).Sort
+	}).ToSlice(&trainNodes)
+
+	return trainNodes, nil
 }
 
 // 获取实例的某一个变量
