@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
+	github.com/antonmedv/expr v1.8.9
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/jinzhu/configor v1.2.1
 	github.com/labstack/echo/v4 v4.1.17

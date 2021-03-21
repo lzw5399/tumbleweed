@@ -30,6 +30,7 @@ type InstanceService interface {
 	List(*request.InstanceListRequest, uint, uint) (*response.PagingResponse, error)
 	HandleProcessInstance(*request.HandleInstancesRequest, uint, uint) (*model.ProcessInstance, error)
 	GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error)
+	DenyProcessInstance(*request.DenyInstanceRequest, uint, uint) (*model.ProcessInstance, error)
 }
 
 type instanceService struct {
@@ -48,10 +49,13 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 		processInstance      = r.ToProcessInstance(currentUserId, tenantId)
 		processEngine        *engine.ProcessEngine  // 流程定义引擎
 		instanceEngine       *engine.InstanceEngine // 流程实例引擎
-		condExprStatus       bool
-		sourceEdges          []map[string]interface{}
-		targetEdges          []map[string]interface{}
 	)
+
+	// 检查变量是否合法
+	err = validateVariables(r.Variables)
+	if err != nil {
+		return nil, err
+	}
 
 	// 查询对应的流程模板
 	err = global.BankDb.
@@ -92,6 +96,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 排他网关
 	case "exclusiveGateway":
 		var sourceEdges []map[string]interface{}
+		var condExprStatus bool
 		sourceEdges, err = processEngine.GetEdge(comingNode["id"].(string), "source")
 		if err != nil {
 			return nil, err
@@ -136,12 +141,12 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	// 并行网关
 	case "parallelGateway":
 		// 入口，判断
-		sourceEdges, err = processEngine.GetEdge(comingNode["id"].(string), "source")
+		sourceEdges, err := processEngine.GetEdge(comingNode["id"].(string), "source")
 		if err != nil {
 			return nil, fmt.Errorf("查询流转信息失败，%v", err.Error())
 		}
 
-		targetEdges, err = processEngine.GetEdge(comingNode["id"].(string), "target")
+		targetEdges, err := processEngine.GetEdge(comingNode["id"].(string), "target")
 		if err != nil {
 			return nil, fmt.Errorf("查询流转信息失败，%v", err.Error())
 		}
@@ -193,7 +198,6 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 
 	// 开启事务
 	err = global.BankDb.Transaction(func(tx *gorm.DB) error {
-
 		// 创建
 		err = tx.Create(&processInstance).Error
 		if err != nil {
@@ -325,6 +329,12 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 		err            error
 	)
 
+	// 验证变量是否符合要求
+	err = validateVariables(r.Variables)
+	if err != nil {
+		return nil, err
+	}
+
 	// 流程实例引擎
 	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId)
 	if err != nil {
@@ -332,13 +342,38 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	}
 
 	// 验证合法性(1.edgeId是否合法 2.当前用户是否有权限处理)
-	err = instanceEngine.ValidateHandleRequest(r, currentUserId)
+	err = instanceEngine.ValidateHandleRequest(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// 处理
 	err = instanceEngine.Handle(r)
+
+	return &instanceEngine.ProcessInstance, err
+}
+
+// 否决流程
+func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
+	var (
+		instanceEngine *engine.InstanceEngine
+		err            error
+	)
+
+	// 流程实例引擎
+	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	// 验证当前用户是否有权限处理
+	err = instanceEngine.ValidateDenyRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	// 处理
+	err = instanceEngine.Deny(r)
 
 	return &instanceEngine.ProcessInstance, err
 }
@@ -444,6 +479,42 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 	}).ToSlice(&trainNodes)
 
 	return trainNodes, nil
+}
+
+// 检查变量是否合法
+func validateVariables(variables []model.InstanceVariable) error {
+	checkedVariables := make(map[string]model.InstanceVariable, 0)
+	for _, v := range variables {
+		illegalValueError := fmt.Errorf("当前变量:%s 的类型对应的值不合法，请检查", v.Name)
+		// 检查类型
+		switch v.Type {
+		case constant.VariableNumber:
+			_, succeed := v.Value.(float64)
+			if !succeed {
+				return illegalValueError
+			}
+		case constant.VariableString:
+			_, succeed := v.Value.(string)
+			if !succeed {
+				return illegalValueError
+			}
+		case constant.VariableBool:
+			_, succeed := v.Value.(bool)
+			if !succeed {
+				return illegalValueError
+			}
+		default:
+			return fmt.Errorf("当前变量:%s 的类型不合法，请检查", v.Name)
+		}
+
+		// 检查是否重名
+		if _, present := checkedVariables[v.Name]; present {
+			return fmt.Errorf("当前变量名:%s 重复, 请检查", v.Name)
+		}
+		checkedVariables[v.Name] = v
+	}
+
+	return nil
 }
 
 // 获取实例的某一个变量

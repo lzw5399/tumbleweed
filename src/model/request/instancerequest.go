@@ -9,14 +9,19 @@ import (
 	"time"
 
 	"workflow/src/model"
+	"workflow/src/util"
 )
 
 type ProcessInstanceRequest struct {
-	Title               string `json:"title" form:"title"`                             // 流程实例标题
-	ProcessDefinitionId int    `json:"processDefinitionId" form:"processDefinitionId"` // 流程ID
+	Title               string                   `json:"title" form:"title"`                             // 流程实例标题
+	ProcessDefinitionId int                      `json:"processDefinitionId" form:"processDefinitionId"` // 流程ID
+	Variables           []model.InstanceVariable `json:"variables"`                                      // 变量
 }
 
 func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId uint) model.ProcessInstance {
+	if i.Variables == nil {
+		i.Variables = []model.InstanceVariable{}
+	}
 	return model.ProcessInstance{
 		AuditableBase: model.AuditableBase{
 			CreateTime: time.Now().Local(),
@@ -27,6 +32,7 @@ func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId 
 		Title:               i.Title,
 		ProcessDefinitionId: i.ProcessDefinitionId,
 		TenantId:            int(tenantId),
+		Variables:           util.MarshalToDbJson(i.Variables),
 	}
 }
 

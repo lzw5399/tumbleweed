@@ -26,8 +26,8 @@ var (
 // @Accept  json
 // @Produce json
 // @param request body request.ProcessInstanceRequest true "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances [post]
 func CreateProcessInstance(c echo.Context) error {
@@ -51,8 +51,8 @@ func CreateProcessInstance(c echo.Context) error {
 // @Accept  json
 // @Produce json
 // @param request query request.InstanceListRequest true "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances [GET]
 func ListProcessInstances(c echo.Context) error {
@@ -76,8 +76,8 @@ func ListProcessInstances(c echo.Context) error {
 // @Accept  json
 // @Produce json
 // @param request body request.HandleInstancesRequest true "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances/_handle [POST]
 func HandleProcessInstance(c echo.Context) error {
@@ -96,12 +96,37 @@ func HandleProcessInstance(c echo.Context) error {
 }
 
 // @Tags process-instances
+// @Summary 否决流程流程
+// @Accept  json
+// @Produce json
+// @param request body request.DenyInstanceRequest true "request"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances/_deny [POST]
+func DenyProcessInstance(c echo.Context) error {
+	var r request.DenyInstanceRequest
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
+	}
+
+	tenantId := util.GetCurrentTenantId(c)
+	currentUserId := util.GetCurrentUserId(c)
+	instance, err := instanceService.DenyProcessInstance(&r, currentUserId, tenantId)
+	if err != nil {
+		return response.FailWithMsg(c, http.StatusBadRequest, err)
+	}
+
+	return response.OkWithData(c, instance)
+}
+
+// @Tags process-instances
 // @Summary 获取一个流程实例
 // @Produce json
 // @param id path int true "request"
 // @param includeProcessTrain query bool false "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances/{id} [GET]
 func GetProcessInstance(c echo.Context) error {
@@ -124,8 +149,8 @@ func GetProcessInstance(c echo.Context) error {
 // @Summary 获取流程链路
 // @Produce json
 // @param id path int true "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/process-instances/{id}/train-nodes [GET]
 func GetProcessTrain(c echo.Context) error {

@@ -22,7 +22,14 @@ type ProcessInstance struct {
 	IsDenied            bool           `gorm:"default:false" json:"isDenied" form:"isDenied"`                                        // 是否被拒绝
 	State               datatypes.JSON `gorm:"type:jsonb" json:"state" form:"state"`                                                 // 状态信息
 	RelatedPerson       pq.Int64Array  `gorm:"type:integer[]; default:array[]::integer[]" json:"relatedPerson" form:"relatedPerson"` // 工单所有处理人
-	UrgeCount           int            `gorm:"type:integer; default:0" json:"urgeCount" form:"urgeCount"`                            // 催办次数
-	UrgeLastTime        time.Time      `gorm:"type:timestamp" json:"urgeLastTime" form:"urgeLastTime"`                  // 上一次催促时间
 	TenantId            int            `gorm:"index" json:"tenantId" form:"tenantId"`                                                // 租户id
+	Variables           datatypes.JSON `gorm:"type:jsonb" json:"variables" form:"variables"`                                         // 变量
+	UrgeCount           int            `gorm:"type:integer; default:0" json:"urgeCount" form:"urgeCount"`                            // 催办次数(暂不支持)
+	UrgeLastTime        time.Time      `gorm:"type:timestamp" json:"urgeLastTime" form:"urgeLastTime"`                               // 上一次催促时间(暂不支持)
+}
+
+type InstanceVariable struct {
+	Name  string      `json:"name"`  // 变量名
+	Type  int         `json:"type"`  // 变量类型 1=int 2=string 3=bool 4=float64
+	Value interface{} `json:"value"` // 变量值
 }

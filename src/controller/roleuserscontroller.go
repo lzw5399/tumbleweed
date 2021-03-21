@@ -23,8 +23,8 @@ var (
 // @Accept  json
 // @Produce json
 // @param request body request.BatchSyncRoleUsersRequest true "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/role-users/_batch [POST]
 func BatchSyncRoleUsers(c echo.Context) error {
@@ -51,8 +51,8 @@ func BatchSyncRoleUsers(c echo.Context) error {
 // @Accept  json
 // @Produce json
 // @param request body request.SyncRoleUsersRequest true "request"
-// @param wf-tenant-code header string true "wf-tenant-code"
-// @param wf-current-user header string true "wf-current-user"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/role-users [POST]
 func SyncRoleUsers(c echo.Context) error {

@@ -1,10 +1,31 @@
 definitions:
+  model.InstanceVariable:
+    properties:
+      name:
+        description: 变量名
+        type: string
+      type:
+        description: 变量类型 1=int 2=string 3=bool 4=float64
+        type: integer
+      value:
+        description: 变量值
+        type: object
+    type: object
   request.BatchSyncRoleUsersRequest:
     properties:
       roleUsersList:
         items:
           $ref: '#/definitions/request.SyncRoleUsersRequest'
         type: array
+    type: object
+  request.DenyInstanceRequest:
+    properties:
+      processInstanceId:
+        description: 流程实例的id
+        type: integer
+      remarks:
+        description: 备注
+        type: string
     type: object
   request.HandleInstancesRequest:
     properties:
@@ -17,6 +38,11 @@ definitions:
       remarks:
         description: 备注
         type: string
+      variables:
+        description: 变量
+        items:
+          $ref: '#/definitions/model.InstanceVariable'
+        type: array
     type: object
   request.ProcessDefinitionRequest:
     properties:
@@ -52,6 +78,11 @@ definitions:
       title:
         description: 流程实例标题
         type: string
+      variables:
+        description: 变量
+        items:
+          $ref: '#/definitions/model.InstanceVariable'
+        type: array
     type: object
   request.SyncRoleUsersRequest:
     properties:
@@ -103,14 +134,14 @@ paths:
         in: query
         name: type
         type: integer
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -133,14 +164,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessDefinitionRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -163,14 +194,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessDefinitionRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -191,14 +222,14 @@ paths:
         name: id
         required: true
         type: string
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -218,14 +249,14 @@ paths:
         name: id
         required: true
         type: string
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -267,14 +298,14 @@ paths:
         in: query
         name: type
         type: integer
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -297,14 +328,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessInstanceRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -315,6 +346,37 @@ paths:
           schema:
             $ref: '#/definitions/response.HttpResponse'
       summary: 创建新的流程实例
+      tags:
+      - process-instances
+  /api/process-instances/_deny:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.DenyInstanceRequest'
+      - description: WF-TENANT-CODE
+        in: header
+        name: WF-TENANT-CODE
+        required: true
+        type: string
+      - description: WF-CURRENT-USER
+        in: header
+        name: WF-CURRENT-USER
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 否决流程流程
       tags:
       - process-instances
   /api/process-instances/_handle:
@@ -328,14 +390,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.HandleInstancesRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -360,14 +422,14 @@ paths:
         in: query
         name: includeProcessTrain
         type: boolean
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -388,14 +450,14 @@ paths:
         name: id
         required: true
         type: integer
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -419,14 +481,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.SyncRoleUsersRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -450,14 +512,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.BatchSyncRoleUsersRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:

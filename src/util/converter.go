@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 
 	"gorm.io/datatypes"
+
+	"workflow/src/model"
 )
 
 func StringToMap(jsonStr string) (map[string]string, error) {
@@ -45,4 +47,11 @@ func MarshalToDbJson(m interface{}) datatypes.JSON {
 
 func MarshalToString(m interface{}) string {
 	return string(MarshalToBytes(m))
+}
+
+func UnmarshalToInstanceVariables(m datatypes.JSON) []model.InstanceVariable {
+	var variables []model.InstanceVariable
+	_ = json.Unmarshal([]byte(m), &variables)
+
+	return variables
 }
