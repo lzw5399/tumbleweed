@@ -1,4 +1,16 @@
 definitions:
+  model.InstanceVariable:
+    properties:
+      name:
+        description: 变量名
+        type: string
+      type:
+        description: 变量类型 1=int 2=string 3=bool 4=float64
+        type: integer
+      value:
+        description: 变量值
+        type: object
+    type: object
   request.BatchSyncRoleUsersRequest:
     properties:
       roleUsersList:
@@ -61,6 +73,11 @@ definitions:
       title:
         description: 流程实例标题
         type: string
+      variables:
+        description: 变量
+        items:
+          $ref: '#/definitions/model.InstanceVariable'
+        type: array
     type: object
   request.SyncRoleUsersRequest:
     properties:

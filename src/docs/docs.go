@@ -669,6 +669,23 @@ var doc = `{
         }
     },
     "definitions": {
+        "model.InstanceVariable": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "变量名",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "变量类型 1=int 2=string 3=bool 4=float64",
+                    "type": "integer"
+                },
+                "value": {
+                    "description": "变量值",
+                    "type": "object"
+                }
+            }
+        },
         "request.BatchSyncRoleUsersRequest": {
             "type": "object",
             "properties": {
@@ -756,6 +773,13 @@ var doc = `{
                 "title": {
                     "description": "流程实例标题",
                     "type": "string"
+                },
+                "variables": {
+                    "description": "变量",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.InstanceVariable"
+                    }
                 }
             }
         },
