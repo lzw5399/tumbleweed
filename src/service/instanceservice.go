@@ -329,6 +329,12 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 		err            error
 	)
 
+	// 验证变量是否符合要求
+	err = validateVariables(r.Variables)
+	if err != nil {
+		return nil, err
+	}
+
 	// 流程实例引擎
 	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId)
 	if err != nil {
@@ -479,11 +485,25 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 func validateVariables(variables []model.InstanceVariable) error {
 	checkedVariables := make(map[string]model.InstanceVariable, 0)
 	for _, v := range variables {
+		illegalValueError := fmt.Errorf("当前变量:%s 的类型对应的值不合法，请检查", v.Name)
 		// 检查类型
-		isValidType := From([]int{1, 2, 3, 4}).AnyWith(func(i interface{}) bool {
-			return i.(int) == v.Type
-		})
-		if !isValidType {
+		switch v.Type {
+		case constant.VariableNumber:
+			_, succeed := v.Value.(float64)
+			if !succeed {
+				return illegalValueError
+			}
+		case constant.VariableString:
+			_, succeed := v.Value.(string)
+			if !succeed {
+				return illegalValueError
+			}
+		case constant.VariableBool:
+			_, succeed := v.Value.(bool)
+			if !succeed {
+				return illegalValueError
+			}
+		default:
 			return fmt.Errorf("当前变量:%s 的类型不合法，请检查", v.Name)
 		}
 

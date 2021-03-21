@@ -28,7 +28,13 @@ const (
 type ChainNodeStatus int
 
 const (
-	Processed   ChainNodeStatus = iota + 1 //已处理
+	Processed   ChainNodeStatus = iota + 1 // 已处理
 	CurrentNode                            // 当前节点
 	Unreachable                            // 后续节点
+)
+
+const (
+	VariableNumber = iota + 1
+	VariableString
+	VariableBool
 )

@@ -38,6 +38,11 @@ definitions:
       remarks:
         description: 备注
         type: string
+      variables:
+        description: 变量
+        items:
+          $ref: '#/definitions/model.InstanceVariable'
+        type: array
     type: object
   request.ProcessDefinitionRequest:
     properties:

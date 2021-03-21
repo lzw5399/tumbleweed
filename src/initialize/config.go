@@ -25,9 +25,9 @@ func init() {
 
 	var err error
 	if util.PathExists(overrideConfigFileName) {
-		err = configor.Load(&global.BankConfig, "config/appsettings.yaml", overrideConfigFileName)
+		err = configor.Load(&global.BankConfig, "src/config/appsettings.yaml", overrideConfigFileName)
 	} else {
-		err = configor.Load(&global.BankConfig, "config/appsettings.yaml")
+		err = configor.Load(&global.BankConfig, "src/config/appsettings.yaml")
 	}
 
 	if err != nil {

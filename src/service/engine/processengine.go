@@ -14,6 +14,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"workflow/src/global/constant"
 	"workflow/src/model"
 )
 
@@ -91,14 +92,19 @@ func (p *ProcessEngine) GetEdge(stateId string, classify string) (edgeValue []ma
 }
 
 func (p *ProcessEngine) GetInitialNode() (map[string]interface{}, error) {
-	if p.DefinitionStructure["nodes"] == nil || len(p.DefinitionStructure["nodes"]) <= 0 {
+	var startNode map[string]interface{}
+	for _, node := range p.DefinitionStructure["nodes"] {
+		if node["clazz"].(string) == constant.START {
+			startNode = node
+		}
+	}
+
+	if startNode == nil {
 		return nil, errors.New("当前结构不合法")
 	}
 
-	return p.DefinitionStructure["nodes"][0], nil
+	return startNode, nil
 }
-
-
 
 // 会签
 //func (h *ProcessEngine) Countersign(c echo.Context) (err error) {

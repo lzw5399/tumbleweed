@@ -724,6 +724,13 @@ var doc = `{
                 "remarks": {
                     "description": "备注",
                     "type": "string"
+                },
+                "variables": {
+                    "description": "变量",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.InstanceVariable"
+                    }
                 }
             }
         },

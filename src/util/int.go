@@ -37,3 +37,9 @@ func ParseToInt64Array(arr []int) []int64 {
 
 	return intArr
 }
+
+func IsInteger(f float64) bool {
+	f2 := float64(int64(f))
+
+	return f == f2
+}

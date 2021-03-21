@@ -12,6 +12,8 @@ import (
 	"log"
 	"time"
 
+	. "github.com/ahmetb/go-linq/v3"
+
 	"workflow/src/global"
 	"workflow/src/global/constant"
 	"workflow/src/model"
@@ -24,7 +26,8 @@ type InstanceEngine struct {
 	ProcessDefinition   model.ProcessDefinition // 流程定义
 	definitionStructure DefinitionStructure     // 流程定义中的结构
 	currentUserId       uint                    // 当前用户id
-	tenantId            uint                    //租户id
+	tenantId            uint                    // 租户id
+	InfoRepo            map[string]interface{}  // 信息仓库 以nodeType为key
 }
 
 func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint, tenantId uint) (*InstanceEngine, error) {
@@ -39,6 +42,7 @@ func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint, tenantId u
 		definitionStructure: definitionStructure,
 		currentUserId:       currentUserId,
 		tenantId:            tenantId,
+		InfoRepo:            map[string]interface{}{},
 	}, nil
 }
 
@@ -78,12 +82,18 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, t
 		definitionStructure: definitionStructure,
 		currentUserId:       currentUserId,
 		tenantId:            tenantId,
+		InfoRepo:            map[string]interface{}{},
 	}, nil
 }
 
 // 获取instance的初始state
 func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, error) {
-	startNode := i.definitionStructure["nodes"][0]
+	var startNode map[string]interface{}
+	for _, node := range i.definitionStructure["nodes"] {
+		if node["clazz"].(string) == constant.START {
+			startNode = node
+		}
+	}
 	startNodeId := startNode["id"].(string)
 	var firstEdge map[string]interface{}
 
@@ -202,6 +212,10 @@ func (i *InstanceEngine) EnsurePermission(state map[string]interface{}) bool {
 
 // 流程处理
 func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
+	// 合并最新的变量
+	i.UpdateVariables(r.Variables)
+
+	// 获取edge
 	edge, err := i.GetEdge(r.EdgeID)
 	if err != nil {
 		return err
@@ -220,6 +234,11 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 			return err
 		}
 		err = i.CommonProcessing(edge, targetNode, newStates)
+		if err != nil {
+			return err
+		}
+	case constant.ExclusiveGateway:
+		err := i.ProcessingExclusiveGateway(targetNode, r)
 		if err != nil {
 			return err
 		}
@@ -267,6 +286,123 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		return err
 	}
 
+	// TODO 这里可以跟 【目前的handle, 如果排他网关后面还是排他网关，会有问题】一起优化掉，应该需要递归
+	switch targetNode["clazz"].(string) {
+	case constant.ExclusiveGateway:
+		// 由于是排他网关，会跳两次，所以这里的target变成了source
+		twiceSourceNode := targetNode
+		twiceTargetNode := i.InfoRepo["targetNode"].(map[string]interface{})
+		twiceEdge := i.InfoRepo["hitEdge"].(map[string]interface{})
+
+		var lastCirc model.CirculationHistory
+		err = global.BankDb.
+			Where("process_instance_id = ?", r.ProcessInstanceId).
+			Order("create_time desc").
+			Select("create_time").
+			First(&lastCirc).
+			Error
+		if err != nil {
+			return err
+		}
+		duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
+
+		// 创建新的一条流转历史
+		cirHistory := model.CirculationHistory{
+			AuditableBase: model.AuditableBase{
+				CreateBy: i.currentUserId,
+				UpdateBy: i.currentUserId,
+			},
+			Title:             i.ProcessInstance.Title,
+			ProcessInstanceId: i.ProcessInstance.Id,
+			SourceState:       twiceSourceNode["label"].(string),
+			SourceId:          twiceSourceNode["id"].(string),
+			TargetId:          twiceTargetNode["id"].(string),
+			Circulation:       twiceEdge["label"].(string),
+			ProcessorId:       i.currentUserId,
+			CostDuration:      duration,
+			Remarks:           r.Remarks,
+		}
+
+		err = global.BankDb.
+			Model(&model.CirculationHistory{}).
+			Create(&cirHistory).
+			Error
+
+		if err != nil {
+			return err
+		}
+
+		// 判断二次是否是end
+		if twiceTargetNode["clazz"].(string) == constant.End {
+			var lastCirc3 model.CirculationHistory
+			err = global.BankDb.
+				Where("process_instance_id = ?", r.ProcessInstanceId).
+				Order("create_time desc").
+				Select("create_time").
+				First(&lastCirc3).
+				Error
+			if err != nil {
+				return err
+			}
+			duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
+
+			// 创建新的一条流转历史
+			cirHistory3 := model.CirculationHistory{
+				AuditableBase: model.AuditableBase{
+					CreateBy: i.currentUserId,
+					UpdateBy: i.currentUserId,
+				},
+				Title:             i.ProcessInstance.Title,
+				ProcessInstanceId: i.ProcessInstance.Id,
+				SourceState:       twiceTargetNode["label"].(string),
+				SourceId:          twiceTargetNode["id"].(string),
+				TargetId:          "",
+				Circulation:       "结束",
+				ProcessorId:       i.currentUserId,
+				CostDuration:      duration,
+				Remarks:           r.Remarks,
+			}
+
+			err = global.BankDb.
+				Model(&model.CirculationHistory{}).
+				Create(&cirHistory3).
+				Error
+
+			if err != nil {
+				return err
+			}
+		}
+	case constant.End:
+		{
+			twiceSourceNode := targetNode
+			// 创建新的一条流转历史
+			cirHistory3 := model.CirculationHistory{
+				AuditableBase: model.AuditableBase{
+					CreateBy: i.currentUserId,
+					UpdateBy: i.currentUserId,
+				},
+				Title:             i.ProcessInstance.Title,
+				ProcessInstanceId: i.ProcessInstance.Id,
+				SourceState:       twiceSourceNode["label"].(string),
+				SourceId:          twiceSourceNode["id"].(string),
+				TargetId:          "",
+				Circulation:       "结束",
+				ProcessorId:       i.currentUserId,
+				CostDuration:      duration,
+				Remarks:           r.Remarks,
+			}
+
+			err = global.BankDb.
+				Model(&model.CirculationHistory{}).
+				Create(&cirHistory3).
+				Error
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -283,6 +419,24 @@ func (i *InstanceEngine) GetEdge(edgeId string) (map[string]interface{}, error) 
 	}
 
 	return nil, fmt.Errorf("当前edgeId为:%s的edge不存在", edgeId)
+}
+
+// i.GetEdges("userTask123", "source") 获取所有source为userTask123的edges
+// i.GetEdges("userTask123", "target") 获取所有target为userTask123的edges
+func (i *InstanceEngine) GetEdges(nodeId string, nodeIdType string) []map[string]interface{} {
+	edges := make([]map[string]interface{}, 0)
+	for _, edge := range i.definitionStructure["edges"] {
+		if edge[nodeIdType].(string) == nodeId {
+			edges = append(edges, edge)
+		}
+	}
+
+	// 根据sort排序
+	From(edges).OrderByT(func(i map[string]interface{}) interface{} {
+		return i["sort"].(float64)
+	})
+
+	return edges
 }
 
 // 获取node
@@ -326,23 +480,25 @@ func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) ([]map[string
 		state["id"] = node["id"]
 		state["label"] = node["label"]
 
-		switch node["assignType"].(string) {
-		case "role": // 审批者是role, 需要转成person
-			state["processMethod"] = "person"
-			processors, err := i.getUserIdsByRoleIds(node["assignValue"])
-			if err != nil {
-				return nil, err
+		if node["assignType"] != nil && node["assignValue"] != nil {
+			switch node["assignType"].(string) {
+			case "role": // 审批者是role, 需要转成person
+				state["processMethod"] = "person"
+				processors, err := i.getUserIdsByRoleIds(node["assignValue"])
+				if err != nil {
+					return nil, err
+				}
+				state["processor"] = processors
+				state["originProcessMethod"] = node["assignType"]
+				state["originProcessor"] = node["assignValue"]
+				break
+			case "person": // 审批者是person的话直接用原值
+				state["processMethod"] = node["assignType"]
+				state["processor"] = node["assignValue"]
+				break
+			default:
+				return nil, fmt.Errorf("不支持的处理人类型: %s", node["assignType"].(string))
 			}
-			state["processor"] = processors
-			state["originProcessMethod"] = node["assignType"]
-			state["originProcessor"] = node["assignValue"]
-			break
-		case "person": // 审批者是person的话直接用原值
-			state["processMethod"] = node["assignType"]
-			state["processor"] = node["assignValue"]
-			break
-		default:
-			return nil, fmt.Errorf("不支持的处理人类型: %s", node["assignType"].(string))
 		}
 
 		// 获取可用的edge
@@ -397,4 +553,27 @@ func (i *InstanceEngine) getUserIdsByRoleIds(ids interface{}) ([]int, error) {
 	}
 
 	return finalUserIds, nil
+}
+
+// 合并更新变量
+func (i *InstanceEngine) UpdateVariables(newVariables []model.InstanceVariable) {
+	// 反序列化出来
+	originVariables := util.UnmarshalToInstanceVariables(i.ProcessInstance.Variables)
+
+	// 查询优化先整理成map
+	originVariableMap := make(map[string]model.InstanceVariable, len(originVariables))
+	for _, v := range originVariables {
+		originVariableMap[v.Name] = v
+	}
+
+	for _, v := range newVariables {
+		originVariableMap[v.Name] = v
+	}
+
+	finalVariables := make([]model.InstanceVariable, 0)
+	for _, v := range originVariableMap {
+		finalVariables = append(finalVariables, v)
+	}
+
+	i.ProcessInstance.Variables = util.MarshalToDbJson(finalVariables)
 }

@@ -19,6 +19,9 @@ type ProcessInstanceRequest struct {
 }
 
 func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId uint) model.ProcessInstance {
+	if i.Variables == nil {
+		i.Variables = []model.InstanceVariable{}
+	}
 	return model.ProcessInstance{
 		AuditableBase: model.AuditableBase{
 			CreateTime: time.Now().Local(),

@@ -51,6 +51,7 @@ func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newState
 		"is_end":         false,
 		"update_time":    time.Now().Local(),
 		"update_by":      i.currentUserId,
+		"variables":      i.ProcessInstance.Variables,
 	}
 
 	// 如果是跳转到结束节点，则需要修改节点状态
