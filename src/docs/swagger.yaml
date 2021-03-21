@@ -129,14 +129,14 @@ paths:
         in: query
         name: type
         type: integer
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -159,14 +159,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessDefinitionRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -189,14 +189,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessDefinitionRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -217,14 +217,14 @@ paths:
         name: id
         required: true
         type: string
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -244,14 +244,14 @@ paths:
         name: id
         required: true
         type: string
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -293,14 +293,14 @@ paths:
         in: query
         name: type
         type: integer
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -323,14 +323,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.ProcessInstanceRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -354,14 +354,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.DenyInstanceRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -385,14 +385,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.HandleInstancesRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -417,14 +417,14 @@ paths:
         in: query
         name: includeProcessTrain
         type: boolean
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -445,14 +445,14 @@ paths:
         name: id
         required: true
         type: integer
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -476,14 +476,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.SyncRoleUsersRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:
@@ -507,14 +507,14 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/request.BatchSyncRoleUsersRequest'
-      - description: wf-tenant-code
+      - description: WF-TENANT-CODE
         in: header
-        name: wf-tenant-code
+        name: WF-TENANT-CODE
         required: true
         type: string
-      - description: wf-current-user
+      - description: WF-CURRENT-USER
         in: header
-        name: wf-current-user
+        name: WF-CURRENT-USER
         required: true
         type: string
       produces:

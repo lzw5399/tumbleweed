@@ -75,15 +75,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -120,15 +120,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -165,15 +165,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -207,15 +207,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -247,15 +247,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -321,15 +321,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -366,15 +366,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -413,15 +413,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -460,15 +460,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -508,15 +508,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -550,15 +550,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -597,15 +597,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }
@@ -644,15 +644,15 @@ var doc = `{
                     },
                     {
                         "type": "string",
-                        "description": "wf-tenant-code",
-                        "name": "wf-tenant-code",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
                         "in": "header",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "wf-current-user",
-                        "name": "wf-current-user",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
                         "in": "header",
                         "required": true
                     }

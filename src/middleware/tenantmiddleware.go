@@ -22,7 +22,7 @@ import (
 
 func MultiTenant(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		tenantCode := c.Request().Header.Get("wf-tenant-code")
+		tenantCode := c.Request().Header.Get("WF-TENANT-CODE")
 		if tenantCode == "" {
 			return response.FailWithMsg(c, http.StatusUnauthorized, "未指定当前租户")
 		}
