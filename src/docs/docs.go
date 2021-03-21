@@ -389,6 +389,53 @@ var doc = `{
                 }
             }
         },
+        "/api/process-instances/_deny": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-instances"
+                ],
+                "summary": "否决流程流程",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.DenyInstanceRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-tenant-code",
+                        "name": "wf-tenant-code",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "wf-current-user",
+                        "name": "wf-current-user",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/process-instances/_handle": {
             "post": {
                 "consumes": [
@@ -630,6 +677,19 @@ var doc = `{
                     "items": {
                         "$ref": "#/definitions/request.SyncRoleUsersRequest"
                     }
+                }
+            }
+        },
+        "request.DenyInstanceRequest": {
+            "type": "object",
+            "properties": {
+                "processInstanceId": {
+                    "description": "流程实例的id",
+                    "type": "integer"
+                },
+                "remarks": {
+                    "description": "备注",
+                    "type": "string"
                 }
             }
         },

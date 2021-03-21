@@ -96,6 +96,31 @@ func HandleProcessInstance(c echo.Context) error {
 }
 
 // @Tags process-instances
+// @Summary 否决流程流程
+// @Accept  json
+// @Produce json
+// @param request body request.DenyInstanceRequest true "request"
+// @param wf-tenant-code header string true "wf-tenant-code"
+// @param wf-current-user header string true "wf-current-user"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/process-instances/_deny [POST]
+func DenyProcessInstance(c echo.Context) error {
+	var r request.DenyInstanceRequest
+	if err := c.Bind(&r); err != nil {
+		return response.Failed(c, http.StatusBadRequest)
+	}
+
+	tenantId := util.GetCurrentTenantId(c)
+	currentUserId := util.GetCurrentUserId(c)
+	instance, err := instanceService.DenyProcessInstance(&r, currentUserId, tenantId)
+	if err != nil {
+		return response.FailWithMsg(c, http.StatusBadRequest, err)
+	}
+
+	return response.OkWithData(c, instance)
+}
+
+// @Tags process-instances
 // @Summary 获取一个流程实例
 // @Produce json
 // @param id path int true "request"

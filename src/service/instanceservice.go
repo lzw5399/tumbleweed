@@ -30,6 +30,7 @@ type InstanceService interface {
 	List(*request.InstanceListRequest, uint, uint) (*response.PagingResponse, error)
 	HandleProcessInstance(*request.HandleInstancesRequest, uint, uint) (*model.ProcessInstance, error)
 	GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error)
+	DenyProcessInstance(*request.DenyInstanceRequest, uint, uint) (*model.ProcessInstance, error)
 }
 
 type instanceService struct {
@@ -332,13 +333,38 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	}
 
 	// 验证合法性(1.edgeId是否合法 2.当前用户是否有权限处理)
-	err = instanceEngine.ValidateHandleRequest(r, currentUserId)
+	err = instanceEngine.ValidateHandleRequest(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// 处理
 	err = instanceEngine.Handle(r)
+
+	return &instanceEngine.ProcessInstance, err
+}
+
+// 否决流程
+func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
+	var (
+		instanceEngine *engine.InstanceEngine
+		err            error
+	)
+
+	// 流程实例引擎
+	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	// 验证当前用户是否有权限处理
+	err = instanceEngine.ValidateDenyRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	// 处理
+	err = instanceEngine.Deny(r)
 
 	return &instanceEngine.ProcessInstance, err
 }

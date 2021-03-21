@@ -116,7 +116,7 @@ func (i *InstanceEngine) GetInstanceInitialState() ([]map[string]interface{}, er
 }
 
 // 验证入参合法性
-func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest, currentUserId uint) error {
+func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest) error {
 	currentEdge, err := i.GetEdge(r.EdgeID)
 	if err != nil {
 		return err
@@ -143,25 +143,61 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 		return errors.New("当前流程已被否决, 不能进行审批操作")
 	}
 
-	// 判断当前角色是否有权限
-	processors, succeed := state["processor"].([]interface{})
-	if !succeed {
-		return errors.New("当前流程的state状态不合法, 请检查")
-	}
-
-	hasPermission := false
-	for _, processor := range processors {
-		if uint(processor.(float64)) == currentUserId {
-			hasPermission = true
-			break
-		}
-	}
-
+	// 判断当前用户是否有权限
+	hasPermission := i.EnsurePermission(state)
 	if !hasPermission {
 		return errors.New("当前用户无权限进行当前操作")
 	}
 
 	return nil
+}
+
+// 验证否决请求的入参
+func (i *InstanceEngine) ValidateDenyRequest() error {
+	var currentInstanceState []map[string]interface{}
+	err := json.Unmarshal(i.ProcessInstance.State, &currentInstanceState)
+	if err != nil {
+		return errors.New("当前processInstance的state状态不合法, 请检查")
+	}
+
+	// todo 这里先判断[0]
+	state := currentInstanceState[0]
+
+	// 判断当前流程实例状态是否已结束或者被否决
+	if i.ProcessInstance.IsEnd {
+		return errors.New("当前流程已结束, 不能进行审批操作")
+	}
+
+	if i.ProcessInstance.IsDenied {
+		return errors.New("当前流程已被否决, 不能进行审批操作")
+	}
+
+	// 判断是否有权限
+	hasPermission := i.EnsurePermission(state)
+	if !hasPermission {
+		return errors.New("当前用户无权限进行当前操作")
+	}
+
+	return nil
+}
+
+// 判断当前用户是否有权限
+func (i *InstanceEngine) EnsurePermission(state map[string]interface{}) bool {
+	// 判断当前角色是否有权限
+	processors, succeed := state["processor"].([]interface{})
+	if !succeed {
+		return false
+	}
+
+	hasPermission := false
+	for _, processor := range processors {
+		if uint(processor.(float64)) == i.currentUserId {
+			hasPermission = true
+			break
+		}
+	}
+
+	return hasPermission
 }
 
 // 流程处理
@@ -177,9 +213,8 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 	}
 
 	// 判断目标节点的类型，有不同的处理方式
-	switch targetNode["clazz"] {
-	case constant.UserTask:
-	case constant.End:
+	switch targetNode["clazz"].(string) {
+	case constant.UserTask, constant.End:
 		newStates, err := i.GenStates([]map[string]interface{}{targetNode})
 		if err != nil {
 			return err

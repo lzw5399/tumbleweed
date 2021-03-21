@@ -27,11 +27,12 @@ func RegisterProcessDefinition(r *echo.Group) {
 func RegisterProcessInstance(r *echo.Group) {
 	instanceGroup := r.Group("/process-instances")
 	{
-		instanceGroup.POST("", controller.CreateProcessInstance)         // 新建流程
-		instanceGroup.GET("/:id", controller.GetProcessInstance)         // 获取
-		instanceGroup.GET("", controller.ListProcessInstances)           // 获取列表
-		instanceGroup.POST("/_handle", controller.HandleProcessInstance) // 流程审批
-		instanceGroup.GET("/:id/train-nodes", controller.GetProcessTrain)     // 获取流程链路
+		instanceGroup.POST("", controller.CreateProcessInstance)          // 新建流程
+		instanceGroup.GET("/:id", controller.GetProcessInstance)          // 获取
+		instanceGroup.GET("", controller.ListProcessInstances)            // 获取列表
+		instanceGroup.POST("/_handle", controller.HandleProcessInstance)  // 流程审批
+		instanceGroup.POST("/_deny", controller.DenyProcessInstance)      // 流程否决
+		instanceGroup.GET("/:id/train-nodes", controller.GetProcessTrain) // 获取流程链路
 	}
 }
 

@@ -11,3 +11,9 @@ type HandleInstancesRequest struct {
 	ProcessInstanceId uint   `json:"processInstanceId" form:"processInstanceId"` // 流程实例的id
 	Remarks           string `json:"remarks" form:"remarks"`                     // 备注
 }
+
+// 否决流程的请求体
+type DenyInstanceRequest struct {
+	ProcessInstanceId uint   `json:"processInstanceId" form:"processInstanceId"` // 流程实例的id
+	Remarks           string `json:"remarks" form:"remarks"`                     // 备注
+}

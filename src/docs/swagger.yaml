@@ -6,6 +6,15 @@ definitions:
           $ref: '#/definitions/request.SyncRoleUsersRequest'
         type: array
     type: object
+  request.DenyInstanceRequest:
+    properties:
+      processInstanceId:
+        description: 流程实例的id
+        type: integer
+      remarks:
+        description: 备注
+        type: string
+    type: object
   request.HandleInstancesRequest:
     properties:
       edgeId:
@@ -315,6 +324,37 @@ paths:
           schema:
             $ref: '#/definitions/response.HttpResponse'
       summary: 创建新的流程实例
+      tags:
+      - process-instances
+  /api/process-instances/_deny:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.DenyInstanceRequest'
+      - description: wf-tenant-code
+        in: header
+        name: wf-tenant-code
+        required: true
+        type: string
+      - description: wf-current-user
+        in: header
+        name: wf-current-user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      summary: 否决流程流程
       tags:
       - process-instances
   /api/process-instances/_handle:
