@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "trackableappname" . }}
@@ -11,6 +11,12 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "appname" . }}
+      track: "{{ .Values.application.track }}"
+      tier: "{{ .Values.application.tier }}"
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -40,7 +46,7 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
         livenessProbe:
           httpGet:
-            path: /api/info/alive
+            path: /api/health/alive
             port: {{ .Values.service.internalPort }}
           failureThreshold: 6
           initialDelaySeconds: 120
@@ -48,10 +54,9 @@ spec:
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: /api/info/ready
+            path: /api/health/ready
             port: {{ .Values.service.internalPort }}
           failureThreshold: 6
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
-
