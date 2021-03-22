@@ -9,7 +9,8 @@ WORKDIR /app
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" .
+RUN apt-get install upx && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" . && upx -9 workflow
 
 RUN mkdir publish && cp workflow publish && \
     mkdir publish/config && \
