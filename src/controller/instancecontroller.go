@@ -63,7 +63,7 @@ func ListProcessInstances(c echo.Context) error {
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
-	instances, err := instanceService.List(&r, util.GetCurrentUserId(c), tenantId)
+	instances, err := instanceService.ListProcessInstance(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusInternalServerError, err)
 	}
@@ -137,7 +137,7 @@ func GetProcessInstance(c echo.Context) error {
 
 	currentUserId := util.GetCurrentUserId(c)
 	tenantId := util.GetCurrentTenantId(c)
-	instance, err := instanceService.Get(&r, currentUserId, tenantId)
+	instance, err := instanceService.GetProcessInstance(&r, currentUserId, tenantId)
 	if err != nil {
 		return response.FailWithMsg(c, http.StatusNotFound, "记录不存在")
 	}

@@ -10,9 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	. "github.com/ahmetb/go-linq/v3"
+	"gorm.io/gorm"
 
 	"workflow/src/global"
 	"workflow/src/global/constant"
@@ -22,15 +22,21 @@ import (
 )
 
 type InstanceEngine struct {
+	tx                  *gorm.DB                // 数据库事务对象
+	definitionStructure DefinitionStructure     // 流程定义中的结构(从ProcessDefinition中反序列化出来的)
+	currentUserId       uint                    // 当前用户id
+	tenantId            uint                    // 当前租户id
+	sourceNode          map[string]interface{}  // 流转的源node
+	targetNode          map[string]interface{}  // 流转的目标node
+	linkEdge            map[string]interface{}  // sourceNode和targetNode中间连接的edge
 	ProcessInstance     model.ProcessInstance   // 流程实例
 	ProcessDefinition   model.ProcessDefinition // 流程定义
-	definitionStructure DefinitionStructure     // 流程定义中的结构
-	currentUserId       uint                    // 当前用户id
-	tenantId            uint                    // 租户id
-	InfoRepo            map[string]interface{}  // 信息仓库 以nodeType为key
 }
 
-func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint, tenantId uint) (*InstanceEngine, error) {
+type DefinitionStructure map[string][]map[string]interface{}
+
+// 初始化流程引擎
+func NewInstanceEngine(p model.ProcessDefinition, instance model.ProcessInstance, currentUserId uint, tenantId uint, tx *gorm.DB) (*InstanceEngine, error) {
 	var definitionStructure DefinitionStructure
 	err := json.Unmarshal(p.Structure, &definitionStructure)
 	if err != nil {
@@ -38,15 +44,17 @@ func NewInstanceEngine(p model.ProcessDefinition, currentUserId uint, tenantId u
 	}
 
 	return &InstanceEngine{
-		ProcessDefinition:   model.ProcessDefinition{},
+		ProcessDefinition:   p,
+		ProcessInstance:     instance,
 		definitionStructure: definitionStructure,
 		currentUserId:       currentUserId,
 		tenantId:            tenantId,
-		InfoRepo:            map[string]interface{}{},
+		tx:                  tx,
 	}, nil
 }
 
-func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint) (*InstanceEngine, error) {
+// 初始化流程引擎(带process instance)
+func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint, tx *gorm.DB) (*InstanceEngine, error) {
 	var processInstance model.ProcessInstance
 	var processDefinition model.ProcessDefinition
 
@@ -82,7 +90,7 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, t
 		definitionStructure: definitionStructure,
 		currentUserId:       currentUserId,
 		tenantId:            tenantId,
-		InfoRepo:            map[string]interface{}{},
+		tx:                  tx,
 	}, nil
 }
 
@@ -212,9 +220,6 @@ func (i *InstanceEngine) EnsurePermission(state map[string]interface{}) bool {
 
 // 流程处理
 func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
-	// 合并最新的变量
-	i.UpdateVariables(r.Variables)
-
 	// 获取edge
 	edge, err := i.GetEdge(r.EdgeID)
 	if err != nil {
@@ -222,6 +227,14 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 	}
 
 	targetNode, err := i.GetTargetNodeByEdgeId(r.EdgeID)
+	if err != nil {
+		return err
+	}
+
+	// 添加历史记录, 这条只是保底的, 后续还会有其他的判断
+	sourceNode, _ := i.GetNode(edge["source"].(string))
+	i.SetNodeEdgeInfo(sourceNode, edge, targetNode)
+	err = i.CreateCirculationHistory(r.Remarks)
 	if err != nil {
 		return err
 	}
@@ -246,164 +259,40 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", targetNode["clazz"])
 	}
 
-	// 获取上一条的流转历史的CreateTime来计算CostDuration
-	var lastCirculation model.CirculationHistory
-	err = global.BankDb.
-		Where("process_instance_id = ?", r.ProcessInstanceId).
-		Order("create_time desc").
-		Select("create_time").
-		First(&lastCirculation).
-		Error
-	if err != nil {
-		return err
-	}
-	duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
-
-	// 创建新的一条流转历史
-	sourceNode, _ := i.GetNode(edge["source"].(string))
-	cirHistory := model.CirculationHistory{
-		AuditableBase: model.AuditableBase{
-			CreateBy: i.currentUserId,
-			UpdateBy: i.currentUserId,
-		},
-		Title:             i.ProcessInstance.Title,
-		ProcessInstanceId: i.ProcessInstance.Id,
-		SourceState:       sourceNode["label"].(string),
-		SourceId:          sourceNode["id"].(string),
-		TargetId:          targetNode["id"].(string),
-		Circulation:       edge["label"].(string),
-		ProcessorId:       i.currentUserId,
-		CostDuration:      duration,
-		Remarks:           r.Remarks,
-	}
-
-	err = global.BankDb.
-		Model(&model.CirculationHistory{}).
-		Create(&cirHistory).
-		Error
-
-	if err != nil {
-		return err
-	}
-
 	// TODO 这里可以跟 【目前的handle, 如果排他网关后面还是排他网关，会有问题】一起优化掉，应该需要递归
-	switch targetNode["clazz"].(string) {
+	originTargetNode := targetNode
+	switch originTargetNode["clazz"].(string) {
 	case constant.ExclusiveGateway:
-		// 由于是排他网关，会跳两次，所以这里的target变成了source
-		twiceSourceNode := targetNode
-		twiceTargetNode := i.InfoRepo["targetNode"].(map[string]interface{})
-		twiceEdge := i.InfoRepo["hitEdge"].(map[string]interface{})
-
-		var lastCirc model.CirculationHistory
-		err = global.BankDb.
-			Where("process_instance_id = ?", r.ProcessInstanceId).
-			Order("create_time desc").
-			Select("create_time").
-			First(&lastCirc).
-			Error
-		if err != nil {
-			return err
-		}
-		duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
-
-		// 创建新的一条流转历史
-		cirHistory := model.CirculationHistory{
-			AuditableBase: model.AuditableBase{
-				CreateBy: i.currentUserId,
-				UpdateBy: i.currentUserId,
-			},
-			Title:             i.ProcessInstance.Title,
-			ProcessInstanceId: i.ProcessInstance.Id,
-			SourceState:       twiceSourceNode["label"].(string),
-			SourceId:          twiceSourceNode["id"].(string),
-			TargetId:          twiceTargetNode["id"].(string),
-			Circulation:       twiceEdge["label"].(string),
-			ProcessorId:       i.currentUserId,
-			CostDuration:      duration,
-			Remarks:           r.Remarks,
-		}
-
-		err = global.BankDb.
-			Model(&model.CirculationHistory{}).
-			Create(&cirHistory).
-			Error
-
+		// 由于排他网关理论上会跳至少两次【原节点->排他网关->后续节点】
+		// 所以需要再
+		err := i.CreateCirculationHistory(r.Remarks)
 		if err != nil {
 			return err
 		}
 
 		// 判断二次是否是end
-		if twiceTargetNode["clazz"].(string) == constant.End {
-			var lastCirc3 model.CirculationHistory
-			err = global.BankDb.
-				Where("process_instance_id = ?", r.ProcessInstanceId).
-				Order("create_time desc").
-				Select("create_time").
-				First(&lastCirc3).
-				Error
-			if err != nil {
-				return err
-			}
-			duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
-
-			// 创建新的一条流转历史
-			cirHistory3 := model.CirculationHistory{
-				AuditableBase: model.AuditableBase{
-					CreateBy: i.currentUserId,
-					UpdateBy: i.currentUserId,
-				},
-				Title:             i.ProcessInstance.Title,
-				ProcessInstanceId: i.ProcessInstance.Id,
-				SourceState:       twiceTargetNode["label"].(string),
-				SourceId:          twiceTargetNode["id"].(string),
-				TargetId:          "",
-				Circulation:       "结束",
-				ProcessorId:       i.currentUserId,
-				CostDuration:      duration,
-				Remarks:           r.Remarks,
-			}
-
-			err = global.BankDb.
-				Model(&model.CirculationHistory{}).
-				Create(&cirHistory3).
-				Error
-
+		if i.targetNode != nil && i.targetNode["clazz"].(string) == constant.End {
+			i.SetNodeEdgeInfo(i.targetNode, nil, nil)
+			err = i.CreateCirculationHistory(r.Remarks)
 			if err != nil {
 				return err
 			}
 		}
 	case constant.End:
-		{
-			twiceSourceNode := targetNode
-			// 创建新的一条流转历史
-			cirHistory3 := model.CirculationHistory{
-				AuditableBase: model.AuditableBase{
-					CreateBy: i.currentUserId,
-					UpdateBy: i.currentUserId,
-				},
-				Title:             i.ProcessInstance.Title,
-				ProcessInstanceId: i.ProcessInstance.Id,
-				SourceState:       twiceSourceNode["label"].(string),
-				SourceId:          twiceSourceNode["id"].(string),
-				TargetId:          "",
-				Circulation:       "结束",
-				ProcessorId:       i.currentUserId,
-				CostDuration:      duration,
-				Remarks:           r.Remarks,
-			}
-
-			err = global.BankDb.
-				Model(&model.CirculationHistory{}).
-				Create(&cirHistory3).
-				Error
-
-			if err != nil {
-				return err
-			}
+		i.SetNodeEdgeInfo(i.targetNode, nil, nil)
+		err = i.CreateCirculationHistory(r.Remarks)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (i *InstanceEngine) SetNodeEdgeInfo(sourceNode map[string]interface{}, edge map[string]interface{}, targetEdge map[string]interface{}) {
+	i.sourceNode = sourceNode
+	i.linkEdge = edge
+	i.targetNode = targetEdge
 }
 
 // 获取edge
@@ -480,11 +369,12 @@ func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) ([]map[string
 		state["id"] = node["id"]
 		state["label"] = node["label"]
 
+		// 审批者是role的需要在这里转成person
 		if node["assignType"] != nil && node["assignValue"] != nil {
 			switch node["assignType"].(string) {
 			case "role": // 审批者是role, 需要转成person
 				state["processMethod"] = "person"
-				processors, err := i.getUserIdsByRoleIds(node["assignValue"])
+				processors, err := i.GetUserIdsByRoleIds(node["assignValue"])
 				if err != nil {
 					return nil, err
 				}
@@ -516,7 +406,8 @@ func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) ([]map[string
 	return states, nil
 }
 
-func (i *InstanceEngine) getUserIdsByRoleIds(ids interface{}) ([]int, error) {
+// 通过角色id获取用户id
+func (i *InstanceEngine) GetUserIdsByRoleIds(ids interface{}) ([]int, error) {
 	bytes := util.MarshalToBytes(ids)
 	var roleIds []int
 	err := json.Unmarshal(bytes, &roleIds)
@@ -576,4 +467,19 @@ func (i *InstanceEngine) UpdateVariables(newVariables []model.InstanceVariable) 
 	}
 
 	i.ProcessInstance.Variables = util.MarshalToDbJson(finalVariables)
+}
+
+func (i *InstanceEngine) GetInitialNode() (map[string]interface{}, error) {
+	var startNode map[string]interface{}
+	for _, node := range i.definitionStructure["nodes"] {
+		if node["clazz"].(string) == constant.START {
+			startNode = node
+		}
+	}
+
+	if startNode == nil {
+		return nil, errors.New("当前结构不合法")
+	}
+
+	return startNode, nil
 }

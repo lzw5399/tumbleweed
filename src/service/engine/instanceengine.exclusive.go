@@ -1,7 +1,7 @@
 /**
  * @Author: lzw5399
  * @Date: 2021/3/21 21:34
- * @Desc:
+ * @Desc: 排他网关的相关方法
  */
 package engine
 
@@ -57,14 +57,11 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode map[string]inter
 		return err
 	}
 
-	// 往信息仓库存储
-	i.InfoRepo["hitEdge"] = hitEdge
-	i.InfoRepo["targetNode"] = targetNode
+	// 更新最新的node edge等信息
+	i.SetNodeEdgeInfo(gatewayNode, hitEdge, targetNode)
 
 	return nil
 }
-
-// 流转历史也要更新
 
 // 条件表达式判断
 func (i *InstanceEngine) ConditionJudgment(condExpr string, r *request.HandleInstancesRequest) (bool, error) {
