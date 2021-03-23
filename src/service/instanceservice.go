@@ -246,7 +246,7 @@ func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, cu
 
 // 获取流程链(用于展示)
 func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error) {
-	// 获取流程实例(如果为空)
+	// 1. 获取流程实例(如果为空)
 	var instance model.ProcessInstance
 	if pi == nil {
 		err := global.BankDb.
@@ -260,7 +260,7 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		instance = *pi
 	}
 
-	// 获取流程模板
+	// 2. 获取流程模板
 	var definition model.ProcessDefinition
 	err := global.BankDb.
 		Where("id=?", instance.ProcessDefinitionId).
@@ -271,14 +271,14 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		return nil, errors.New("当前流程对应的模板为空")
 	}
 
-	// 获取模板结构
+	// 3. 获取模板结构
 	var definitionStructure engine.DefinitionStructure
 	err = json.Unmarshal(definition.Structure, &definitionStructure)
 	if err != nil {
 		return nil, errors.New("流程模板的结构不合法，请检查")
 	}
 
-	// 获取实例的当前nodeId
+	// 4. 获取实例的当前nodeId
 	var currentInstanceState []map[string]interface{}
 	err = json.Unmarshal(instance.State, &currentInstanceState)
 	if err != nil {
@@ -287,8 +287,10 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 	// todo 暂不支持并行网关，所以先用0
 	currentNodeId := currentInstanceState[0]["id"].(string)
 
-	shownNodes := make([]map[string]interface{}, 0) // 显示的节点
-	currentNodeSortNumber := 0                      // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
+	// 5. 获取所有的显示节点
+	shownNodes := make([]map[string]interface{}, 0)
+	currentNodeSortNumber := 0 // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
+	initialNodeId := ""
 	for _, node := range definitionStructure["nodes"] {
 		// 隐藏节点就跳过
 		if node["isHideNode"] != nil && node["isHideNode"].(bool) == true {
@@ -298,9 +300,31 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		if node["id"].(string) == currentNodeId {
 			currentNodeSortNumber = util.StringToInt(node["sort"].(string))
 		}
+		// 找出开始节点的id
+		if node["clazz"].(string) == constant.START {
+			initialNodeId = node["id"].(string)
+		}
 		shownNodes = append(shownNodes, node)
 	}
 
+	// 6. 遍历出可能的流程链路
+	possibleTrainNodesList := make([][]string, 0, util.Pow(len(definitionStructure["nodes"]), 2))
+	getPossibleTrainNode(definitionStructure, initialNodeId, []string{}, &possibleTrainNodesList)
+
+	// 7. 遍历获取当前显示的节点是否必须显示的
+	// 具体实现方法是遍历possibleTrainNodesList中每一个变量，然后看当前变量的hitCount是否等于len(possibleTrainNodesList)
+	// 等于的话，说明在数组每个元素里面都出现了, 那么肯定是必须的
+	hitCount := make(map[string]int, len(definitionStructure["nodes"]))
+	for _, possibleTrainNodes := range possibleTrainNodesList {
+		for _, trainNode := range possibleTrainNodes {
+			hitCount[trainNode] = hitCount[trainNode] + 1
+		}
+	}
+	for _, shownNode := range shownNodes {
+		shownNode["obligatory"] = hitCount[shownNode["id"].(string)] == len(possibleTrainNodesList)
+	}
+
+	// 8. 最后将shownNodes映射成model返回
 	var trainNodes []response.ProcessChainNode
 	From(shownNodes).Select(func(i interface{}) interface{} {
 		node := i.(map[string]interface{})
@@ -334,11 +358,12 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		}
 
 		return response.ProcessChainNode{
-			Name:     node["label"].(string),
-			Id:       node["id"].(string),
-			Status:   status,
-			Sort:     currentNodeSort,
-			NodeType: nodeType,
+			Name:       node["label"].(string),
+			Id:         node["id"].(string),
+			Obligatory: node["obligatory"].(bool),
+			Status:     status,
+			Sort:       currentNodeSort,
+			NodeType:   nodeType,
 		}
 	}).OrderBy(func(i interface{}) interface{} {
 		return i.(response.ProcessChainNode).Sort
@@ -381,4 +406,31 @@ func validateVariables(variables []model.InstanceVariable) error {
 	}
 
 	return nil
+}
+
+// 获取所有的可能的流程链路
+// definitionStructure: 流程模板的结构
+// currentNodes: 当前需要遍历的节点
+// dependencies: 依赖项
+// possibleTrainNodes: 最终返回的可能的流程链路
+func getPossibleTrainNode(definitionStructure engine.DefinitionStructure, currentNodeId string, dependencies []string, possibleTrainNodes *[][]string) {
+	targetNodeIds := make([]string, 0)
+	// 当前节点添加到依赖中
+	dependencies = append(dependencies, currentNodeId)
+	for _, edge := range definitionStructure["edges"] {
+		// 找到edge的source是当前nodeId的edge
+		if edge["source"].(string) == currentNodeId {
+			targetNodeIds = append(targetNodeIds, edge["target"].(string))
+		}
+	}
+
+	// 已经是最终节点了
+	if len(targetNodeIds) == 0 {
+		*possibleTrainNodes = append(*possibleTrainNodes, dependencies)
+	} else {
+		// 不是最终节点，继续递归遍历
+		for _, targetNodeId := range targetNodeIds {
+			getPossibleTrainNode(definitionStructure, targetNodeId, dependencies, possibleTrainNodes)
+		}
+	}
 }
