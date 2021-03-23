@@ -10,7 +10,6 @@ import (
 	"errors"
 	"time"
 
-	"workflow/src/global"
 	"workflow/src/global/constant"
 	"workflow/src/model"
 	"workflow/src/model/request"
@@ -59,7 +58,7 @@ func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newState
 		toUpdate["is_end"] = true
 	}
 
-	err := global.BankDb.
+	err := i.tx.
 		Model(&i.ProcessInstance).
 		Updates(toUpdate).
 		Error
@@ -89,14 +88,14 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 		"update_by":      i.currentUserId,
 	}
 
-	err := global.BankDb.
+	err := i.tx.
 		Model(&i.ProcessInstance).
 		Updates(toUpdate).
 		Error
 
 	// 获取上一条的流转历史的CreateTime来计算CostDuration
 	var lastCirculation model.CirculationHistory
-	err = global.BankDb.
+	err = i.tx.
 		Where("process_instance_id = ?", i.ProcessInstance.Id).
 		Order("create_time desc").
 		Select("create_time").
@@ -131,7 +130,7 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 		Remarks:           r.Remarks,
 	}
 
-	err = global.BankDb.
+	err = i.tx.
 		Model(&model.CirculationHistory{}).
 		Create(&cirHistory).
 		Error
