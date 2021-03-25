@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"log"
 
-	"workflow/src/global"
-	"workflow/src/model"
-
 	_ "github.com/jackc/pgx/v4"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
+
+	"workflow/src/global"
+	"workflow/src/model"
 )
 
 func init() {
