@@ -10,6 +10,8 @@ import (
 
 	"github.com/lib/pq"
 	"gorm.io/datatypes"
+
+	"workflow/src/model/dto"
 )
 
 type ProcessInstance struct {
@@ -20,7 +22,7 @@ type ProcessInstance struct {
 	ClassifyId          int            `gorm:"type:integer" json:"classifyId" form:"classifyId"`                                     // 分类ID
 	IsEnd               bool           `gorm:"default:false" json:"isEnd" form:"isEnd"`                                              // 是否结束
 	IsDenied            bool           `gorm:"default:false" json:"isDenied" form:"isDenied"`                                        // 是否被拒绝
-	State               datatypes.JSON `gorm:"type:jsonb" json:"state" form:"state"`                                                 // 状态信息
+	State               dto.StateArray `gorm:"type:jsonb" json:"state" form:"state"`                                                 // 状态信息
 	RelatedPerson       pq.Int64Array  `gorm:"type:integer[]; default:array[]::integer[]" json:"relatedPerson" form:"relatedPerson"` // 工单所有处理人
 	TenantId            int            `gorm:"index" json:"tenantId" form:"tenantId"`                                                // 租户id
 	Variables           datatypes.JSON `gorm:"type:jsonb" json:"variables" form:"variables"`                                         // 变量

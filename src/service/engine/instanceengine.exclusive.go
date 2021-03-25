@@ -42,7 +42,7 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode map[string]inter
 		return errors.New("没有符合条件的流向，请检查")
 	}
 
-	// 3. 根绝edge进行跳转
+	// 3. 获取必要的信息
 	targetNode, err := i.GetTargetNodeByEdgeId(hitEdge["id"].(string))
 	if err != nil {
 		return errors.New("模板结构错误")
@@ -52,13 +52,15 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode map[string]inter
 	if err != nil {
 		return err
 	}
-	err = i.CommonProcessing(hitEdge, targetNode, newStates)
+
+	// 4. 更新最新的node edge等信息
+	i.SetNodeEdgeInfo(gatewayNode, hitEdge, targetNode)
+
+	// 5. 根据edge进行跳转
+	err = i.CommonProcessing(newStates)
 	if err != nil {
 		return err
 	}
-
-	// 更新最新的node edge等信息
-	i.SetNodeEdgeInfo(gatewayNode, hitEdge, targetNode)
 
 	return nil
 }
