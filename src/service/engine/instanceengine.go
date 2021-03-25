@@ -17,6 +17,7 @@ import (
 	"workflow/src/global"
 	"workflow/src/global/constant"
 	"workflow/src/model"
+	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/util"
 )
@@ -140,15 +141,9 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 		return err
 	}
 
-	var currentInstanceState []map[string]interface{}
-	err = json.Unmarshal(i.ProcessInstance.State, &currentInstanceState)
-	if err != nil {
-		return errors.New("当前processInstance的state状态不合法, 请检查")
-	}
-
 	// todo 这里先判断[0]
-	state := currentInstanceState[0]
-	if currentEdge["source"].(string) != state["id"].(string) {
+	state := i.ProcessInstance.State[0]
+	if currentEdge["source"].(string) != state.Id {
 		return errors.New("当前审批不合法, 请检查")
 	}
 
@@ -172,14 +167,8 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 
 // 验证否决请求的入参
 func (i *InstanceEngine) ValidateDenyRequest() error {
-	var currentInstanceState []map[string]interface{}
-	err := json.Unmarshal(i.ProcessInstance.State, &currentInstanceState)
-	if err != nil {
-		return errors.New("当前processInstance的state状态不合法, 请检查")
-	}
-
 	// todo 这里先判断[0]
-	state := currentInstanceState[0]
+	state := i.ProcessInstance.State[0]
 
 	// 判断当前流程实例状态是否已结束或者被否决
 	if i.ProcessInstance.IsEnd {
@@ -200,16 +189,11 @@ func (i *InstanceEngine) ValidateDenyRequest() error {
 }
 
 // 判断当前用户是否有权限
-func (i *InstanceEngine) EnsurePermission(state map[string]interface{}) bool {
+func (i *InstanceEngine) EnsurePermission(state dto.State) bool {
 	// 判断当前角色是否有权限
-	processors, succeed := state["processor"].([]interface{})
-	if !succeed {
-		return false
-	}
-
 	hasPermission := false
-	for _, processor := range processors {
-		if uint(processor.(float64)) == i.currentUserId {
+	for _, processor := range state.Processor {
+		if uint(processor) == i.currentUserId {
 			hasPermission = true
 			break
 		}
@@ -246,7 +230,7 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		if err != nil {
 			return err
 		}
-		err = i.CommonProcessing(edge, targetNode, newStates)
+		err = i.CommonProcessing(newStates)
 		if err != nil {
 			return err
 		}
@@ -353,14 +337,6 @@ func (i *InstanceEngine) GetTargetNodeByEdgeId(edgeId string) (map[string]interf
 	return i.GetNode(edge["target"].(string))
 }
 
-// 获取当前ProcessInstance的State
-func (i *InstanceEngine) GetCurrentInstanceState() ([]map[string]interface{}, error) {
-	var currentInstanceStates []map[string]interface{}
-	err := json.Unmarshal(i.ProcessInstance.State, &currentInstanceStates)
-
-	return currentInstanceStates, err
-}
-
 // 获取数据库process_instance表存储的state字段的对象
 func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) ([]map[string]interface{}, error) {
 	states := make([]map[string]interface{}, 0)
@@ -368,22 +344,22 @@ func (i *InstanceEngine) GenStates(nodes []map[string]interface{}) ([]map[string
 		state := make(map[string]interface{})
 		state["id"] = node["id"]
 		state["label"] = node["label"]
+		state["isCounterSign"] = node["isCounterSign"] // 是否是会签
+		state["completedProcessor"] = []string{}       // 已处理的审批者
+		state["processMethod"] = node["assignType"]    // 处理方式(角色 用户等)
+		state["assignValue"] = node["assignValue"]     // 指定的处理者(用户的id或者角色的id)
 
 		// 审批者是role的需要在这里转成person
 		if node["assignType"] != nil && node["assignValue"] != nil {
 			switch node["assignType"].(string) {
 			case "role": // 审批者是role, 需要转成person
-				state["processMethod"] = "person"
 				processors, err := i.GetUserIdsByRoleIds(node["assignValue"])
 				if err != nil {
 					return nil, err
 				}
 				state["processor"] = processors
-				state["originProcessMethod"] = node["assignType"]
-				state["originProcessor"] = node["assignValue"]
 				break
 			case "person": // 审批者是person的话直接用原值
-				state["processMethod"] = node["assignType"]
 				state["processor"] = node["assignValue"]
 				break
 			default:

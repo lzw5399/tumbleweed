@@ -6,8 +6,6 @@
 package engine
 
 import (
-	"encoding/json"
-	"errors"
 	"time"
 
 	"workflow/src/global/constant"
@@ -17,19 +15,32 @@ import (
 )
 
 // 一般流转处理，兼顾了会签的判断
-func (i *InstanceEngine) CommonProcessing(edge map[string]interface{}, targetNode map[string]interface{}, newStates []map[string]interface{}) error {
+func (i *InstanceEngine) CommonProcessing(newStates []map[string]interface{}) error {
 	// 如果是拒绝的流程直接跳转
-	if edge["flowProperties"] == 0 {
-		return i.Circulation(targetNode, newStates)
+	if i.linkEdge["flowProperties"] == 0 {
+		return i.Circulation(newStates)
 	}
 
-	// TODO 同意的流程需要判断是否会签
+	// TODO 暂不支持并行网关，这边先判断0
+	state := i.ProcessInstance.State[0]
+	// 不是会签
+	if !state.IsCounterSign {
+		return i.Circulation(newStates)
+	}
 
-	return i.Circulation(targetNode, newStates)
+	// 是会签的最后一个人
+	if i.IsCounterSignLastPerson() {
+		return i.Circulation(newStates)
+	}
+
+	// 不是会签的最后一个人
+	//i.tx.Model(&model.ProcessInstance{}).
+	//	Upda
+	return nil
 }
 
 // processInstance流转处理
-func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newStates []map[string]interface{}) error {
+func (i *InstanceEngine) Circulation(newStates []map[string]interface{}) error {
 	// 获取最新的相关者RelatedPerson
 	exist := false
 	for _, person := range i.ProcessInstance.RelatedPerson {
@@ -54,7 +65,7 @@ func (i *InstanceEngine) Circulation(targetNode map[string]interface{}, newState
 	}
 
 	// 如果是跳转到结束节点，则需要修改节点状态
-	if targetNode["clazz"] == constant.End {
+	if i.targetNode["clazz"] == constant.End {
 		toUpdate["is_end"] = true
 	}
 
@@ -107,13 +118,8 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 	duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
 
 	// 创建新的一条流转历史
-	var currentInstanceState []map[string]interface{}
-	err = json.Unmarshal(i.ProcessInstance.State, &currentInstanceState)
-	if err != nil {
-		return errors.New("当前processInstance的state状态不合法, 请检查")
-	}
 	// todo 这里先判断[0]
-	state := currentInstanceState[0]
+	state := i.ProcessInstance.State[0]
 	cirHistory := model.CirculationHistory{
 		AuditableBase: model.AuditableBase{
 			CreateBy: i.currentUserId,
@@ -121,8 +127,8 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 		},
 		Title:             i.ProcessInstance.Title,
 		ProcessInstanceId: i.ProcessInstance.Id,
-		SourceState:       state["label"].(string),
-		SourceId:          state["id"].(string),
+		SourceState:       state.Label,
+		SourceId:          state.Id,
 		TargetId:          "",
 		Circulation:       "否决",
 		ProcessorId:       i.currentUserId,
@@ -140,4 +146,9 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 	}
 
 	return err
+}
+
+// 是否是会签的最后一个人
+func (i *InstanceEngine) IsCounterSignLastPerson() bool {
+	return false
 }
