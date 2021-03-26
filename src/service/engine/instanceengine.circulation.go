@@ -10,14 +10,15 @@ import (
 
 	"workflow/src/global/constant"
 	"workflow/src/model"
+	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/util"
 )
 
 // 一般流转处理，兼顾了会签的判断
-func (i *InstanceEngine) CommonProcessing(newStates []map[string]interface{}) error {
+func (i *InstanceEngine) CommonProcessing(newStates dto.StateArray) error {
 	// 如果是拒绝的流程直接跳转
-	if i.linkEdge["flowProperties"] == 0 {
+	if i.linkEdge.FlowProperties == "0" {
 		return i.Circulation(newStates)
 	}
 
@@ -35,12 +36,11 @@ func (i *InstanceEngine) CommonProcessing(newStates []map[string]interface{}) er
 
 	// 不是会签的最后一个人
 	//i.tx.Model(&model.ProcessInstance{}).
-	//	Upda
 	return nil
 }
 
 // processInstance流转处理
-func (i *InstanceEngine) Circulation(newStates []map[string]interface{}) error {
+func (i *InstanceEngine) Circulation(newStates dto.StateArray) error {
 	// 获取最新的相关者RelatedPerson
 	exist := false
 	for _, person := range i.ProcessInstance.RelatedPerson {
@@ -53,10 +53,8 @@ func (i *InstanceEngine) Circulation(newStates []map[string]interface{}) error {
 		i.ProcessInstance.RelatedPerson = append(i.ProcessInstance.RelatedPerson, int64(i.currentUserId))
 	}
 
-	state := util.MarshalToDbJson(newStates)
-
 	toUpdate := map[string]interface{}{
-		"state":          state,
+		"state":          newStates,
 		"related_person": i.ProcessInstance.RelatedPerson,
 		"is_end":         false,
 		"update_time":    time.Now().Local(),
@@ -65,7 +63,7 @@ func (i *InstanceEngine) Circulation(newStates []map[string]interface{}) error {
 	}
 
 	// 如果是跳转到结束节点，则需要修改节点状态
-	if i.targetNode["clazz"] == constant.End {
+	if i.targetNode.Clazz == constant.End {
 		toUpdate["is_end"] = true
 	}
 

@@ -19,7 +19,6 @@ import (
 	"workflow/src/model"
 	"workflow/src/model/request"
 	"workflow/src/model/response"
-	"workflow/src/service/engine"
 	"workflow/src/util"
 )
 
@@ -68,7 +67,7 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 	}
 
 	// 如果edge对象不存在id，则生成一个
-	var definitionStructure engine.DefinitionStructure
+	var definitionStructure map[string][]map[string]interface{}
 	err := json.Unmarshal(r.Structure, &definitionStructure)
 	if err != nil {
 		return errors.New("当前structure不合法，请检查")
