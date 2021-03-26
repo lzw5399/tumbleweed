@@ -6,7 +6,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -16,6 +15,7 @@ import (
 	"workflow/src/global/constant"
 	"workflow/src/global/shared"
 	"workflow/src/model"
+	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/model/response"
 	"workflow/src/service/engine"
@@ -41,10 +41,9 @@ func NewInstanceService() *instanceService {
 // 创建实例
 func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		currentInstanceState []map[string]interface{} // 变量值
-		err                  error
-		processDefinition    model.ProcessDefinition // 流程模板
-		tx                   = global.BankDb.Begin() // 开启事务
+		err               error
+		processDefinition model.ProcessDefinition // 流程模板
+		tx                = global.BankDb.Begin() // 开启事务
 	)
 
 	// 检查变量是否合法
@@ -70,25 +69,19 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// 将初始状态赋值给当前的流程实例
-	if currentInstanceState, err = instanceEngine.GetInstanceInitialState(); err != nil {
+	if currentInstanceState, err := instanceEngine.GetInstanceInitialState(); err != nil {
 		return nil, err
 	} else {
-		instanceEngine.ProcessInstance.State = util.MarshalToDbJson(currentInstanceState)
+		instanceEngine.ProcessInstance.State = currentInstanceState
 	}
 
 	// TODO 这里判断下一步是排他网关等情况
-
-	// 将最新的“变量/状态信息”赋值给processInstance
-	instanceEngine.ProcessInstance.State, err = json.Marshal(currentInstanceState)
-	if err != nil {
-		return nil, err
-	}
 
 	// processInstance某些字段更新
 	instanceEngine.ProcessInstance.RelatedPerson = append(instanceEngine.ProcessInstance.RelatedPerson, int64(currentUserId))
 
 	// 创建
-	err = instanceEngine.CreateProcessInstance(currentInstanceState)
+	err = instanceEngine.CreateProcessInstance()
 	if err != nil {
 		tx.Rollback()
 	} else {
@@ -271,60 +264,54 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		return nil, errors.New("当前流程对应的模板为空")
 	}
 
-	// 3. 获取模板结构
-	var definitionStructure engine.DefinitionStructure
-	err = json.Unmarshal(definition.Structure, &definitionStructure)
-	if err != nil {
-		return nil, errors.New("流程模板的结构不合法，请检查")
-	}
-
-	// 4. 获取实例的当前nodeId
-	var currentInstanceState []map[string]interface{}
-	err = json.Unmarshal(instance.State, &currentInstanceState)
-	if err != nil {
-		return nil, errors.New("当前流程实例的状态不合法, 请检查")
-	}
+	// 3. 获取实例的当前nodeId
 	// todo 暂不支持并行网关，所以先用0
-	currentNodeId := currentInstanceState[0]["id"].(string)
+	currentNodeId := instance.State[0].Id
 
-	// 5. 获取所有的显示节点
-	shownNodes := make([]map[string]interface{}, 0)
+	// 4. 获取所有的显示节点
+	shownNodes := make([]response.TrainNodesResponse, 0)
 	currentNodeSortNumber := 0 // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
 	initialNodeId := ""
-	for _, node := range definitionStructure["nodes"] {
+	for _, node := range definition.Structure.Nodes {
 		// 隐藏节点就跳过
-		if node["isHideNode"] != nil && node["isHideNode"].(bool) == true {
+		if node.IsHideNode {
 			continue
 		}
 		// 获取当前节点的顺序
-		if node["id"].(string) == currentNodeId {
-			currentNodeSortNumber = util.StringToInt(node["sort"].(string))
+		if node.Id == currentNodeId {
+			currentNodeSortNumber = util.StringToInt(node.Sort)
 		}
 		// 找出开始节点的id
-		if node["clazz"].(string) == constant.START {
-			initialNodeId = node["id"].(string)
+		if node.Clazz == constant.START {
+			initialNodeId = node.Id
 		}
-		shownNodes = append(shownNodes, node)
+
+		// 映射到TrainNodesResponse
+		respNode := response.TrainNodesResponse{
+			Node: node,
+		}
+
+		shownNodes = append(shownNodes, respNode)
 	}
 
-	// 6. 遍历出可能的流程链路
-	possibleTrainNodesList := make([][]string, 0, util.Pow(len(definitionStructure["nodes"]), 2))
-	getPossibleTrainNode(definitionStructure, initialNodeId, []string{}, &possibleTrainNodesList)
+	// 5. 遍历出可能的流程链路
+	possibleTrainNodesList := make([][]string, 0, util.Pow(len(definition.Structure.Nodes), 2))
+	getPossibleTrainNode(definition.Structure, initialNodeId, []string{}, &possibleTrainNodesList)
 
-	// 7. 遍历获取当前显示的节点是否必须显示的
+	// 6. 遍历获取当前显示的节点是否必须显示的
 	// 具体实现方法是遍历possibleTrainNodesList中每一个变量，然后看当前变量的hitCount是否等于len(possibleTrainNodesList)
 	// 等于的话，说明在数组每个元素里面都出现了, 那么肯定是必须的
-	hitCount := make(map[string]int, len(definitionStructure["nodes"]))
+	hitCount := make(map[string]int, len(definition.Structure.Nodes))
 	for _, possibleTrainNodes := range possibleTrainNodesList {
 		for _, trainNode := range possibleTrainNodes {
 			hitCount[trainNode] = hitCount[trainNode] + 1
 		}
 	}
 	for _, shownNode := range shownNodes {
-		shownNode["obligatory"] = hitCount[shownNode["id"].(string)] == len(possibleTrainNodesList)
+		shownNode.Obligatory = hitCount[shownNode.Id] == len(possibleTrainNodesList)
 	}
 
-	// 8. 最后将shownNodes映射成model返回
+	// 7. 最后将shownNodes映射成model返回
 	var trainNodes []response.ProcessChainNode
 	From(shownNodes).Select(func(i interface{}) interface{} {
 		node := i.(map[string]interface{})
@@ -413,14 +400,14 @@ func validateVariables(variables []model.InstanceVariable) error {
 // currentNodes: 当前需要遍历的节点
 // dependencies: 依赖项
 // possibleTrainNodes: 最终返回的可能的流程链路
-func getPossibleTrainNode(definitionStructure engine.DefinitionStructure, currentNodeId string, dependencies []string, possibleTrainNodes *[][]string) {
+func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId string, dependencies []string, possibleTrainNodes *[][]string) {
 	targetNodeIds := make([]string, 0)
 	// 当前节点添加到依赖中
 	dependencies = append(dependencies, currentNodeId)
-	for _, edge := range definitionStructure["edges"] {
+	for _, edge := range definitionStructure.Edges {
 		// 找到edge的source是当前nodeId的edge
-		if edge["source"].(string) == currentNodeId {
-			targetNodeIds = append(targetNodeIds, edge["target"].(string))
+		if edge.Source == currentNodeId {
+			targetNodeIds = append(targetNodeIds, edge.Target)
 		}
 	}
 

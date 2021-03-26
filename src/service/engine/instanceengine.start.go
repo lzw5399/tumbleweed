@@ -12,7 +12,7 @@ import (
 )
 
 // 创建实例化相关信息
-func (i *InstanceEngine) CreateProcessInstance(currentInstanceState []map[string]interface{}) error {
+func (i *InstanceEngine) CreateProcessInstance() error {
 	// 创建
 	err := i.tx.Create(&i.ProcessInstance).Error
 	if err != nil {
@@ -21,7 +21,8 @@ func (i *InstanceEngine) CreateProcessInstance(currentInstanceState []map[string
 
 	// 创建历史记录
 	initialNode, _ := i.GetInitialNode()
-	i.SetNodeEdgeInfo(initialNode, nil, currentInstanceState[0])
+	nextNodes, _ := i.GetNextNodes(initialNode)
+	i.SetNodeEdgeInfo(&initialNode, nil, &nextNodes[0])
 	err = i.CreateCirculationHistory("")
 	if err != nil {
 		return fmt.Errorf("新建历史记录失败，%v", err.Error())

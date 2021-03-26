@@ -10,30 +10,31 @@ import (
 	"log"
 	"strings"
 
+	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/util"
 )
 
 // 处理排他网关的跳转
-func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode map[string]interface{}, r *request.HandleInstancesRequest) error {
+func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode dto.Node, r *request.HandleInstancesRequest) error {
 	// 1. 找到所有source为当前网关节点的edges, 并按照sort排序
-	edges := i.GetEdges(gatewayNode["id"].(string), "source")
+	edges := i.GetEdges(gatewayNode.Id, "source")
 
 	// 2. 遍历edges, 获取当前第一个符合条件的edge
-	var hitEdge map[string]interface{}
+	hitEdge := new(dto.Edge)
 	for _, edge := range edges {
-		if edge["conditionExpression"] == nil {
+		if edge.ConditionExpression == "" {
 			return errors.New("处理失败, 排他网关的后续流程的条件表达式不能为空, 请检查")
 		}
-		edgeCondExpr := edge["conditionExpression"].(string)
+
 		// 进行条件判断
-		condExprStatus, err := i.ConditionJudgment(edgeCondExpr, r)
+		condExprStatus, err := i.ConditionJudgment(edge.ConditionExpression)
 		if err != nil {
 			return err
 		}
 		// 获取成功的节点
 		if condExprStatus {
-			hitEdge = edge
+			hitEdge = &edge
 			break
 		}
 	}
@@ -43,18 +44,18 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode map[string]inter
 	}
 
 	// 3. 获取必要的信息
-	targetNode, err := i.GetTargetNodeByEdgeId(hitEdge["id"].(string))
+	targetNode, err := i.GetTargetNodeByEdgeId(hitEdge.Id)
 	if err != nil {
 		return errors.New("模板结构错误")
 	}
 
-	newStates, err := i.GenStates([]map[string]interface{}{targetNode})
+	newStates, err := i.GenStates([]dto.Node{targetNode})
 	if err != nil {
 		return err
 	}
 
 	// 4. 更新最新的node edge等信息
-	i.SetNodeEdgeInfo(gatewayNode, hitEdge, targetNode)
+	i.SetNodeEdgeInfo(&gatewayNode, hitEdge, &targetNode)
 
 	// 5. 根据edge进行跳转
 	err = i.CommonProcessing(newStates)
@@ -66,7 +67,7 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode map[string]inter
 }
 
 // 条件表达式判断
-func (i *InstanceEngine) ConditionJudgment(condExpr string, r *request.HandleInstancesRequest) (bool, error) {
+func (i *InstanceEngine) ConditionJudgment(condExpr string) (bool, error) {
 	// 先获取变量列表
 	variables := util.UnmarshalToInstanceVariables(i.ProcessInstance.Variables)
 

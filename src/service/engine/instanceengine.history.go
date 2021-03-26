@@ -17,7 +17,7 @@ import (
 func (i *InstanceEngine) CreateCirculationHistory(remark string) error {
 	// 源节点不为【开始事件】的，获取上一条的流转历史的CreateTime来计算CostDuration
 	duration := "0小时 0分钟"
-	if i.sourceNode["clazz"].(string) != constant.START {
+	if i.sourceNode.Clazz != constant.START {
 		var lastCirculation model.CirculationHistory
 		err := i.tx.
 			Where("process_instance_id = ?", i.ProcessInstance.Id).
@@ -34,21 +34,21 @@ func (i *InstanceEngine) CreateCirculationHistory(remark string) error {
 	// 根据不同的类型取不同的值
 	var sourceState, sourceId, targetId, circulation string
 	switch {
-	case i.sourceNode["clazz"].(string) == constant.START:
-		sourceState = i.sourceNode["label"].(string)
-		sourceId = i.sourceNode["id"].(string)
-		targetId = i.targetNode["id"].(string)
+	case i.sourceNode.Clazz == constant.START:
+		sourceState = i.sourceNode.Label
+		sourceId = i.sourceNode.Id
+		targetId = i.targetNode.Id
 		circulation = "新建"
-	case i.sourceNode["clazz"].(string) == constant.End:
-		sourceState = i.sourceNode["label"].(string)
-		sourceId = i.sourceNode["id"].(string)
+	case i.sourceNode.Clazz == constant.End:
+		sourceState = i.sourceNode.Label
+		sourceId = i.sourceNode.Id
 		targetId = ""
 		circulation = "结束"
 	default:
-		sourceState = i.sourceNode["label"].(string)
-		sourceId = i.sourceNode["id"].(string)
-		targetId = i.targetNode["id"].(string)
-		circulation = i.linkEdge["label"].(string)
+		sourceState = i.sourceNode.Label
+		sourceId = i.sourceNode.Id
+		targetId = i.targetNode.Id
+		circulation = i.linkEdge.Label
 	}
 
 	// 创建新的一条流转历史
