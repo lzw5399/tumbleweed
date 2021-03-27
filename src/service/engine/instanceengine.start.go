@@ -23,7 +23,7 @@ func (i *InstanceEngine) CreateProcessInstance() error {
 	initialNode, _ := i.GetInitialNode()
 	nextNodes, _ := i.GetNextNodes(initialNode)
 	nextNode := nextNodes[0]
-	i.SetNodeEdgeInfo(&initialNode, nil, &nextNode)
+	i.SetCurrentNodeEdgeInfo(&initialNode, nil, &nextNode)
 	err = i.CreateCirculationHistory("")
 	if err != nil {
 		return fmt.Errorf("新建历史记录失败，%v", err.Error())

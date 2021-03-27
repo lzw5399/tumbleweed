@@ -44,10 +44,7 @@ func BadRequestWithMessage(c echo.Context, message interface{}) error {
 	return FailWithMsg(c, http.StatusBadRequest, message)
 }
 
-func FailedOblete(c echo.Context, status int) error {
-	return FailWithMsg(c, status, "操作失败")
-}
-
+// 判断错误的类型 来返回对应的status code
 func Failed(c echo.Context, err error) error {
 	var status int
 	errorType := util.GetType(err)

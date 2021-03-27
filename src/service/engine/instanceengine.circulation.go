@@ -24,35 +24,38 @@ func (i *InstanceEngine) CommonProcessing(newStates dto.StateArray) error {
 
 	// TODO 暂不支持并行网关，这边先判断0
 	state := i.ProcessInstance.State[0]
-	// 不是会签
+	// 不是会签直接跳
 	if !state.IsCounterSign {
 		return i.Circulation(newStates)
 	}
 
-	// 是会签的最后一个人
-	if i.IsCounterSignLastPerson() {
+	// 判断当前用户是否会签的最后一个人
+	isLastPerson, err := i.IsCounterSignLastProcessor()
+	if err != nil {
+		return err
+	}
+	if isLastPerson {
 		return i.Circulation(newStates)
 	}
 
-	// 不是会签的最后一个人
-	//i.tx.Model(&model.ProcessInstance{}).
-	return nil
+	// 不是会签的最后一个人, 则更新
+	toUpdate := map[string]interface{}{
+		"state":          i.ProcessInstance.State,
+		"update_time":    time.Now().Local(),
+		"update_by":      i.currentUserId,
+		"related_person": i.ProcessInstance.RelatedPerson,
+		"variables":      i.ProcessInstance.Variables,
+	}
+
+	err = i.tx.Model(&i.ProcessInstance).
+		Updates(toUpdate).
+		Error
+
+	return err
 }
 
 // processInstance流转处理
 func (i *InstanceEngine) Circulation(newStates dto.StateArray) error {
-	// 获取最新的相关者RelatedPerson
-	exist := false
-	for _, person := range i.ProcessInstance.RelatedPerson {
-		if uint(person) == i.currentUserId {
-			exist = true
-			break
-		}
-	}
-	if !exist {
-		i.ProcessInstance.RelatedPerson = append(i.ProcessInstance.RelatedPerson, int64(i.currentUserId))
-	}
-
 	toUpdate := map[string]interface{}{
 		"state":          newStates,
 		"related_person": i.ProcessInstance.RelatedPerson,
@@ -78,16 +81,7 @@ func (i *InstanceEngine) Circulation(newStates dto.StateArray) error {
 // 否决
 func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 	// 获取最新的相关者RelatedPerson
-	exist := false
-	for _, person := range i.ProcessInstance.RelatedPerson {
-		if uint(person) == i.currentUserId {
-			exist = true
-			break
-		}
-	}
-	if !exist {
-		i.ProcessInstance.RelatedPerson = append(i.ProcessInstance.RelatedPerson, int64(i.currentUserId))
-	}
+	i.UpdateRelatedPerson()
 
 	// 更新instance字段
 	toUpdate := map[string]interface{}{
@@ -146,7 +140,17 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 	return err
 }
 
-// 是否是会签的最后一个人
-func (i *InstanceEngine) IsCounterSignLastPerson() bool {
-	return false
+// 更新relatedPerson
+func (i *InstanceEngine) UpdateRelatedPerson() {
+	// 获取最新的相关者RelatedPerson
+	exist := false
+	for _, person := range i.ProcessInstance.RelatedPerson {
+		if uint(person) == i.currentUserId {
+			exist = true
+			break
+		}
+	}
+	if !exist {
+		i.ProcessInstance.RelatedPerson = append(i.ProcessInstance.RelatedPerson, int64(i.currentUserId))
+	}
 }

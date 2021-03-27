@@ -76,8 +76,8 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 
 	// TODO 这里判断下一步是排他网关等情况
 
-	// processInstance某些字段更新
-	instanceEngine.ProcessInstance.RelatedPerson = append(instanceEngine.ProcessInstance.RelatedPerson, int64(currentUserId))
+	// 更新instance的关联人
+	instanceEngine.UpdateRelatedPerson()
 
 	// 创建
 	err = instanceEngine.CreateProcessInstance()
@@ -411,8 +411,4 @@ func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId strin
 			getPossibleTrainNode(definitionStructure, targetNodeId, dependencies, possibleTrainNodes)
 		}
 	}
-}
-
-func Test() error {
-	return util.BadRequest.New("nono")
 }

@@ -55,10 +55,10 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode dto.Node, r *req
 	}
 
 	// 4. 更新最新的node edge等信息
-	i.SetNodeEdgeInfo(&gatewayNode, &hitEdge, &targetNode)
+	i.SetCurrentNodeEdgeInfo(&gatewayNode, &hitEdge, &targetNode)
 
 	// 5. 根据edge进行跳转
-	err = i.CommonProcessing(newStates)
+	err = i.Circulation(newStates)
 	if err != nil {
 		return err
 	}
