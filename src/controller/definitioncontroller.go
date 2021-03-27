@@ -7,7 +7,6 @@ package controller
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 
@@ -44,7 +43,7 @@ func CreateProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err = definitionService.Validate(&r, 0, tenantId)
 	if err != nil {
-		return response.BadRequestWithMessage(c, err)
+		return response.Failed(c, err)
 	}
 
 	// 创建
@@ -52,7 +51,7 @@ func CreateProcessDefinition(c echo.Context) error {
 	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
 		log.Printf("CreateProcess错误，原因: %s", err.Error())
-		return response.Failed(c, http.StatusInternalServerError)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, processDefinition)
@@ -81,14 +80,14 @@ func UpdateProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err = definitionService.Validate(&r, r.Id, tenantId)
 	if err != nil {
-		return response.BadRequestWithMessage(c, err)
+		return response.Failed(c, err)
 	}
 
 	currentUserId := util.GetCurrentUserId(c)
 	err = definitionService.UpdateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
 		log.Printf("UpdateProcessDefinition错误，原因: %s", err.Error())
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+		return response.Failed(c, err)
 	}
 
 	return response.Ok(c)
@@ -111,7 +110,7 @@ func DeleteProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err := definitionService.DeleteDefinition(util.StringToUint(definitionId), tenantId)
 	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
+		return response.Failed(c, err)
 	}
 
 	return response.Ok(c)
@@ -134,7 +133,7 @@ func GetProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	definition, err := definitionService.GetDefinition(util.StringToUint(definitionId), tenantId)
 	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, definition)
@@ -153,13 +152,13 @@ func ListProcessDefinition(c echo.Context) error {
 	// 从queryString获取分页参数
 	var r request.DefinitionListRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
 	instances, err := definitionService.List(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, instances)

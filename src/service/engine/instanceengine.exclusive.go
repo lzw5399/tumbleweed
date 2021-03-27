@@ -21,7 +21,7 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode dto.Node, r *req
 	edges := i.GetEdges(gatewayNode.Id, "source")
 
 	// 2. 遍历edges, 获取当前第一个符合条件的edge
-	hitEdge := new(dto.Edge)
+	hitEdge := dto.Edge{}
 	for _, edge := range edges {
 		if edge.ConditionExpression == "" {
 			return errors.New("处理失败, 排他网关的后续流程的条件表达式不能为空, 请检查")
@@ -34,12 +34,12 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode dto.Node, r *req
 		}
 		// 获取成功的节点
 		if condExprStatus {
-			hitEdge = &edge
+			hitEdge = edge
 			break
 		}
 	}
 
-	if hitEdge == nil {
+	if hitEdge.Id == "" {
 		return errors.New("没有符合条件的流向，请检查")
 	}
 
@@ -55,7 +55,7 @@ func (i *InstanceEngine) ProcessingExclusiveGateway(gatewayNode dto.Node, r *req
 	}
 
 	// 4. 更新最新的node edge等信息
-	i.SetNodeEdgeInfo(&gatewayNode, hitEdge, &targetNode)
+	i.SetNodeEdgeInfo(&gatewayNode, &hitEdge, &targetNode)
 
 	// 5. 根据edge进行跳转
 	err = i.CommonProcessing(newStates)

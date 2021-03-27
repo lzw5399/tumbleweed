@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+
+	"workflow/src/util"
 )
 
 type HttpResponse struct {
@@ -42,16 +44,25 @@ func BadRequestWithMessage(c echo.Context, message interface{}) error {
 	return FailWithMsg(c, http.StatusBadRequest, message)
 }
 
-func InternalServerError(c echo.Context) error {
-	return FailWithMsg(c, http.StatusInternalServerError, "服务器内部错误")
-}
-
-func InternalServerErrorWithMessage(c echo.Context, message interface{}) error {
-	return FailWithMsg(c, http.StatusInternalServerError, message)
-}
-
-func Failed(c echo.Context, status int) error {
+func FailedOblete(c echo.Context, status int) error {
 	return FailWithMsg(c, status, "操作失败")
+}
+
+func Failed(c echo.Context, err error) error {
+	var status int
+	errorType := util.GetType(err)
+	switch errorType {
+	case util.BadRequest:
+		status = http.StatusBadRequest
+	case util.NotFound:
+		status = http.StatusNotFound
+	case util.Forbidden:
+		status = http.StatusForbidden
+	case util.NoType, util.InternalServerError:
+		status = http.StatusInternalServerError
+	}
+
+	return FailWithMsg(c, status, err.Error())
 }
 
 func FailWithMsg(c echo.Context, status int, err interface{}) error {

@@ -6,8 +6,6 @@
 package model
 
 import (
-	"time"
-
 	"github.com/lib/pq"
 	"gorm.io/datatypes"
 
@@ -26,8 +24,6 @@ type ProcessInstance struct {
 	RelatedPerson       pq.Int64Array  `gorm:"type:integer[]; default:array[]::integer[]" json:"relatedPerson" form:"relatedPerson"` // 工单所有处理人
 	TenantId            int            `gorm:"index" json:"tenantId" form:"tenantId"`                                                // 租户id
 	Variables           datatypes.JSON `gorm:"type:jsonb" json:"variables" form:"variables"`                                         // 变量
-	UrgeCount           int            `gorm:"type:integer; default:0" json:"urgeCount" form:"urgeCount"`                            // 催办次数(暂不支持)
-	UrgeLastTime        time.Time      `gorm:"type:timestamp" json:"urgeLastTime" form:"urgeLastTime"`                               // 上一次催促时间(暂不支持)
 }
 
 type InstanceVariable struct {

@@ -6,12 +6,11 @@
 package global
 
 import (
+	golog "github.com/op/go-logging"
 	"github.com/patrickmn/go-cache"
+	"gorm.io/gorm"
 
 	"workflow/src/config"
-
-	golog "github.com/op/go-logging"
-	"gorm.io/gorm"
 )
 
 var (

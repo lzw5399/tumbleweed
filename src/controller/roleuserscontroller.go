@@ -40,7 +40,7 @@ func BatchSyncRoleUsers(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err = roleUsersService.BatchSyncRoleUsers(&r, tenantId)
 	if err != nil {
-		return response.InternalServerErrorWithMessage(c, "更新失败:"+err.Error())
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithMessage(c, "更新成功")
@@ -68,7 +68,7 @@ func SyncRoleUsers(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err = roleUsersService.SyncRoleUsers(&r, tenantId)
 	if err != nil {
-		return response.InternalServerErrorWithMessage(c, "更新失败:"+err.Error())
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithMessage(c, "更新成功")
