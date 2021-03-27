@@ -8,7 +8,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	. "github.com/ahmetb/go-linq/v3"
 	"gorm.io/gorm"
@@ -387,7 +386,7 @@ func (i *InstanceEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
 		Find(&roleUsersList).
 		Error
 	if err != nil {
-		log.Printf("查询roleuser失败，原因:%s", err.Error())
+		global.BankLogger.Errorln("查询role_user失败", err)
 		return nil, err
 	}
 

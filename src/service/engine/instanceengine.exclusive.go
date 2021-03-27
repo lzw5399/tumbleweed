@@ -7,9 +7,9 @@ package engine
 
 import (
 	"errors"
-	"log"
 	"strings"
 
+	"workflow/src/global"
 	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/util"
@@ -84,7 +84,7 @@ func (i *InstanceEngine) ConditionJudgment(condExpr string) (bool, error) {
 
 	result, err := util.CalculateExpression(condExpr, envMap)
 	if err != nil {
-		log.Printf("计算表达式发生错误, 当前表达式：%s ,当前变量:%v, 错误原因：%s", condExpr, envMap, err.Error())
+		global.BankLogger.Errorf("计算表达式发生错误, 当前表达式：%s ,当前变量:%v, 错误原因：%s", condExpr, envMap, err.Error())
 		return false, err
 	}
 

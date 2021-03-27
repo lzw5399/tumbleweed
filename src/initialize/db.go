@@ -19,7 +19,7 @@ import (
 	"workflow/src/model"
 )
 
-func init() {
+func setupDbConn() {
 	log.Println("-------开始初始化postgres数据库连接--------")
 
 	// 获取数据库配置
