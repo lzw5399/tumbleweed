@@ -47,7 +47,7 @@ func (d *definitionService) GetDefinition(id uint, tenantId uint) (*model.Proces
 		First(&definition).Error
 	if err != nil {
 		log.Error(err)
-		return nil, errors.New("查询流程详情失败")
+		return nil, util.NewError("查询流程详情失败")
 	}
 
 	return &definition, nil
@@ -63,14 +63,14 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 		Where("tenant_id=?", tenantId).
 		Count(&c)
 	if c != 0 {
-		return errors.New(fmt.Sprintf("当前名称为:\"%s\"的模板已存在", r.Name))
+		return util.BadRequest.Newf("当前名称为:\"%s\"的模板已存在", r.Name)
 	}
 
 	// 如果edge对象不存在id，则生成一个
 	var definitionStructure map[string][]map[string]interface{}
 	err := json.Unmarshal(r.Structure, &definitionStructure)
 	if err != nil {
-		return errors.New("当前structure不合法，请检查")
+		return util.BadRequest.New("当前structure不合法，请检查")
 	}
 
 	for _, edge := range definitionStructure["edges"] {
@@ -87,18 +87,15 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 
 // 创建新的process流程
 func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint, tenantId uint) (*model.ProcessDefinition, error) {
-	var (
-		err error
-	)
-
 	processDefinition := r.ProcessDefinition()
 	processDefinition.CreateBy = currentUserId
 	processDefinition.UpdateBy = currentUserId
 	processDefinition.TenantId = int(tenantId)
 
-	if err = global.BankDb.Create(&processDefinition).Error; err != nil {
+	err := global.BankDb.Create(&processDefinition).Error
+	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, util.NewError("创建失败")
 	}
 
 	return &processDefinition, nil
@@ -116,7 +113,7 @@ func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest
 		Count(&count).
 		Error
 	if err != nil || count == 0 {
-		return errors.New("记录不存在")
+		return util.NotFound.New("记录不存在")
 	}
 
 	err = global.BankDb.
@@ -170,7 +167,7 @@ func (d *definitionService) List(r *request.DefinitionListRequest, currentUserId
 	case constant.D_All:
 		break
 	default:
-		return nil, errors.New("type不合法")
+		return nil, util.BadRequest.New("type不合法")
 	}
 
 	if r.Keyword != "" {

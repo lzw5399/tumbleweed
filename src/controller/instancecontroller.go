@@ -6,7 +6,6 @@
 package controller
 
 import (
-	"net/http"
 	"strconv"
 
 	"workflow/src/global/response"
@@ -40,7 +39,7 @@ func CreateProcessInstance(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	processInstance, err := instanceService.CreateProcessInstance(&r, currentUserId, tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, processInstance)
@@ -59,13 +58,13 @@ func ListProcessInstances(c echo.Context) error {
 	// 从queryString获取分页参数
 	var r request.InstanceListRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
 	instances, err := instanceService.ListProcessInstance(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, instances)
@@ -83,13 +82,13 @@ func ListProcessInstances(c echo.Context) error {
 func HandleProcessInstance(c echo.Context) error {
 	var r request.HandleInstancesRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
 	instance, err := instanceService.HandleProcessInstance(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusBadRequest, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, instance)
@@ -107,14 +106,14 @@ func HandleProcessInstance(c echo.Context) error {
 func DenyProcessInstance(c echo.Context) error {
 	var r request.DenyInstanceRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
 	currentUserId := util.GetCurrentUserId(c)
 	instance, err := instanceService.DenyProcessInstance(&r, currentUserId, tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusBadRequest, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, instance)
@@ -132,14 +131,14 @@ func DenyProcessInstance(c echo.Context) error {
 func GetProcessInstance(c echo.Context) error {
 	var r request.GetInstanceRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	currentUserId := util.GetCurrentUserId(c)
 	tenantId := util.GetCurrentTenantId(c)
 	instance, err := instanceService.GetProcessInstance(&r, currentUserId, tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusNotFound, "记录不存在")
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, instance)
@@ -156,13 +155,13 @@ func GetProcessInstance(c echo.Context) error {
 func GetProcessTrain(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
 	trainNodes, err := instanceService.GetProcessTrain(nil, uint(id), tenantId)
 	if err != nil {
-		return response.InternalServerErrorWithMessage(c, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, trainNodes)
@@ -172,7 +171,7 @@ func GetProcessTrain(c echo.Context) error {
 //func GetInstanceVariable(c echo.Context) error {
 //	var r request.GetVariableRequest
 //	if err := c.Bind(&r); err != nil {
-//		return response.Failed(c, http.StatusBadRequest)
+//		return response.FailedOblete(c, http.StatusBadRequest)
 //	}
 //
 //	resp, err := instanceService.GetVariable(&r)
@@ -186,7 +185,7 @@ func GetProcessTrain(c echo.Context) error {
 //func GetInstanceVariableList(c echo.Context) error {
 //	var r request.GetVariableListRequest
 //	if err := c.Bind(&r); err != nil {
-//		return response.Failed(c, http.StatusBadRequest)
+//		return response.FailedOblete(c, http.StatusBadRequest)
 //	}
 //	variables, err := instanceService.ListVariables(&r)
 //	if err != nil {

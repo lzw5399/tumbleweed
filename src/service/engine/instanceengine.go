@@ -90,33 +90,33 @@ func (i *InstanceEngine) GetInstanceInitialState() (dto.StateArray, error) {
 	}
 
 	// 获取firstEdge
-	firstEdge := new(dto.Edge)
+	firstEdge := dto.Edge{}
 	for _, edge := range i.ProcessDefinition.Structure.Edges {
 		if edge.Source == startNode.Id {
-			firstEdge = &edge
+			firstEdge = edge
 			break
 		}
 	}
 
-	if firstEdge == nil {
+	if firstEdge.Id == "" {
 		return nil, errors.New("流程模板结构不合法, 请检查初始流程节点和初始顺序流")
 	}
 
 	firstEdgeTargetId := firstEdge.Target
-	nextNode := new(dto.Node) //dto.Node{}
+	nextNode := dto.Node{}
 	// 获取接下来的节点nextNode
 	for _, node := range i.ProcessDefinition.Structure.Nodes {
 		if node.Id == firstEdgeTargetId {
-			nextNode = &node
+			nextNode = node
 			break
 		}
 	}
-	if nextNode == nil {
+	if nextNode.Id == "" {
 		return nil, errors.New("流程模板结构不合法, 请检查初始流程节点和初始顺序流")
 	}
 
 	// 获取初始的states
-	return i.GenStates([]dto.Node{*nextNode})
+	return i.GenStates([]dto.Node{nextNode})
 }
 
 // 验证入参合法性
@@ -129,22 +129,22 @@ func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest
 	// todo 这里先判断[0]
 	state := i.ProcessInstance.State[0]
 	if currentEdge.Source != state.Id {
-		return errors.New("当前审批不合法, 请检查")
+		return util.BadRequest.New("当前审批不合法, 请检查")
 	}
 
 	// 判断当前流程实例状态是否已结束或者被否决
 	if i.ProcessInstance.IsEnd {
-		return errors.New("当前流程已结束, 不能进行审批操作")
+		return util.BadRequest.New("当前流程已结束, 不能进行审批操作")
 	}
 
 	if i.ProcessInstance.IsDenied {
-		return errors.New("当前流程已被否决, 不能进行审批操作")
+		return util.BadRequest.New("当前流程已被否决, 不能进行审批操作")
 	}
 
 	// 判断当前用户是否有权限
 	hasPermission := i.EnsurePermission(state)
 	if !hasPermission {
-		return errors.New("当前用户无权限进行当前操作")
+		return util.Forbidden.New("当前用户无权限进行当前操作")
 	}
 
 	return nil
@@ -157,17 +157,17 @@ func (i *InstanceEngine) ValidateDenyRequest() error {
 
 	// 判断当前流程实例状态是否已结束或者被否决
 	if i.ProcessInstance.IsEnd {
-		return errors.New("当前流程已结束, 不能进行审批操作")
+		return util.BadRequest.New("当前流程已结束, 不能进行审批操作")
 	}
 
 	if i.ProcessInstance.IsDenied {
-		return errors.New("当前流程已被否决, 不能进行审批操作")
+		return util.BadRequest.New("当前流程已被否决, 不能进行审批操作")
 	}
 
 	// 判断是否有权限
 	hasPermission := i.EnsurePermission(state)
 	if !hasPermission {
-		return errors.New("当前用户无权限进行当前操作")
+		return util.Forbidden.New("当前用户无权限进行此操作")
 	}
 
 	return nil
@@ -435,18 +435,18 @@ func (i *InstanceEngine) UpdateVariables(newVariables []model.InstanceVariable) 
 
 // 获取初始节点
 func (i *InstanceEngine) GetInitialNode() (dto.Node, error) {
-	startNode := new(dto.Node)
+	startNode := dto.Node{}
 	for _, node := range i.ProcessDefinition.Structure.Nodes {
 		if node.Clazz == constant.START {
-			startNode = &node
+			startNode = node
 		}
 	}
 
-	if startNode == nil {
-		return dto.Node{}, errors.New("当前结构不合法")
+	if startNode.Id == "" {
+		return startNode, errors.New("当前结构不合法")
 	}
 
-	return *startNode, nil
+	return startNode, nil
 }
 
 func (i *InstanceEngine) GetNextNodes(sourceNode dto.Node) ([]dto.Node, error) {

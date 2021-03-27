@@ -41,15 +41,14 @@ func NewInstanceService() *instanceService {
 // 创建实例
 func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		err               error
 		processDefinition model.ProcessDefinition // 流程模板
 		tx                = global.BankDb.Begin() // 开启事务
 	)
 
 	// 检查变量是否合法
-	err = validateVariables(r.Variables)
+	err := validateVariables(r.Variables)
 	if err != nil {
-		return nil, err
+		return nil, util.BadRequest.New(err)
 	}
 
 	// 查询对应的流程模板
@@ -108,7 +107,7 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 		return i.(int64) == int64(currentUserId)
 	})
 	if !exist {
-		return nil, errors.New("记录不存在")
+		return nil, util.NotFound.New("记录不存在")
 	}
 
 	resp := response.ProcessInstanceResponse{
@@ -269,7 +268,7 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 	currentNodeId := instance.State[0].Id
 
 	// 4. 获取所有的显示节点
-	shownNodes := make([]response.TrainNodesResponse, 0)
+	shownNodes := make([]dto.Node, 0)
 	currentNodeSortNumber := 0 // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
 	initialNodeId := ""
 	for _, node := range definition.Structure.Nodes {
@@ -286,12 +285,7 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 			initialNodeId = node.Id
 		}
 
-		// 映射到TrainNodesResponse
-		respNode := response.TrainNodesResponse{
-			Node: node,
-		}
-
-		shownNodes = append(shownNodes, respNode)
+		shownNodes = append(shownNodes, node)
 	}
 
 	// 5. 遍历出可能的流程链路
@@ -304,18 +298,15 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 	hitCount := make(map[string]int, len(definition.Structure.Nodes))
 	for _, possibleTrainNodes := range possibleTrainNodesList {
 		for _, trainNode := range possibleTrainNodes {
-			hitCount[trainNode] = hitCount[trainNode] + 1
+			hitCount[trainNode] += 1
 		}
-	}
-	for _, shownNode := range shownNodes {
-		shownNode.Obligatory = hitCount[shownNode.Id] == len(possibleTrainNodesList)
 	}
 
 	// 7. 最后将shownNodes映射成model返回
 	var trainNodes []response.ProcessChainNode
 	From(shownNodes).Select(func(i interface{}) interface{} {
-		node := i.(map[string]interface{})
-		currentNodeSort := util.StringToInt(node["sort"].(string))
+		node := i.(dto.Node)
+		currentNodeSort := util.StringToInt(node.Sort)
 
 		var status constant.ChainNodeStatus
 		switch {
@@ -325,7 +316,7 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 			status = 3 // 未处理的后续节点
 		default:
 			// 如果是结束节点，则不显示为当前节点，显示为已处理
-			if node["clazz"].(string) == constant.End {
+			if node.Clazz == constant.End {
 				status = 1
 			} else { // 其他的等于情况显示为当前节点
 				status = 2 // 当前节点
@@ -333,7 +324,7 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		}
 
 		var nodeType int
-		switch node["clazz"].(string) {
+		switch node.Clazz {
 		case constant.START:
 			nodeType = 1
 		case constant.UserTask:
@@ -345,9 +336,9 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		}
 
 		return response.ProcessChainNode{
-			Name:       node["label"].(string),
-			Id:         node["id"].(string),
-			Obligatory: node["obligatory"].(bool),
+			Name:       node.Label,
+			Id:         node.Id,
+			Obligatory: hitCount[node.Id] == len(possibleTrainNodesList),
 			Status:     status,
 			Sort:       currentNodeSort,
 			NodeType:   nodeType,
@@ -420,4 +411,8 @@ func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId strin
 			getPossibleTrainNode(definitionStructure, targetNodeId, dependencies, possibleTrainNodes)
 		}
 	}
+}
+
+func Test() error {
+	return util.BadRequest.New("nono")
 }
