@@ -14,55 +14,55 @@ import (
 )
 
 // 验证入参合法性
-func (i *InstanceEngine) ValidateHandleRequest(r *request.HandleInstancesRequest) error {
-	currentEdge, err := i.GetEdge(r.EdgeID)
+func (engine *ProcessEngine) ValidateHandleRequest(r *request.HandleInstancesRequest) error {
+	currentEdge, err := engine.GetEdge(r.EdgeID)
 	if err != nil {
 		return err
 	}
 
 	// todo 这里先判断[0]
-	state := i.ProcessInstance.State[0]
+	state := engine.ProcessInstance.State[0]
 	if currentEdge.Source != state.Id {
 		return util.BadRequest.New("当前审批不合法, 请检查")
 	}
 
 	// 判断当前流程实例状态是否已结束或者被否决
-	if i.ProcessInstance.IsEnd {
+	if engine.ProcessInstance.IsEnd {
 		return util.BadRequest.New("当前流程已结束, 不能进行审批操作")
 	}
 
-	if i.ProcessInstance.IsDenied {
+	if engine.ProcessInstance.IsDenied {
 		return util.BadRequest.New("当前流程已被否决, 不能进行审批操作")
 	}
 
 	// 判断当前用户是否有权限
-	return i.EnsurePermission(state)
+	return engine.EnsurePermission(state)
 }
 
 // 验证否决请求的入参
-func (i *InstanceEngine) ValidateDenyRequest() error {
+func (engine *ProcessEngine) ValidateDenyRequest() error {
 	// todo 这里先判断[0]
-	state := i.ProcessInstance.State[0]
+	state := engine.ProcessInstance.State[0]
 
 	// 判断当前流程实例状态是否已结束或者被否决
-	if i.ProcessInstance.IsEnd {
+	if engine.ProcessInstance.IsEnd {
 		return util.BadRequest.New("当前流程已结束, 不能进行审批操作")
 	}
 
-	if i.ProcessInstance.IsDenied {
+	if engine.ProcessInstance.IsDenied {
 		return util.BadRequest.New("当前流程已被否决, 不能进行审批操作")
 	}
 
 	// 判断是否有权限
-	return i.EnsurePermission(state)
+	return engine.EnsurePermission(state)
 }
 
 // 判断当前用户是否有权限
-func (i *InstanceEngine) EnsurePermission(state dto.State) error {
+func (engine *ProcessEngine) EnsurePermission(state dto.State) error {
 	// 判断当前角色是否有权限
 	hasPermission := false
 	for _, processor := range state.Processor {
-		if uint(processor) == i.currentUserId {
+		if uint(processor) == engine.currentUserId {
 			hasPermission = true
 			break
 		}
@@ -73,7 +73,7 @@ func (i *InstanceEngine) EnsurePermission(state dto.State) error {
 	}
 
 	alreadyCompleted := From(state.CompletedProcessor).AnyWith(func(it interface{}) bool {
-		return it.(int) == int(i.currentUserId)
+		return it.(int) == int(engine.currentUserId)
 	})
 	if alreadyCompleted {
 		return util.Forbidden.New("当前用户针对目前节点已审核, 无法重复审核")

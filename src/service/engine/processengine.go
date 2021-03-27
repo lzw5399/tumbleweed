@@ -20,7 +20,7 @@ import (
 	"workflow/src/util"
 )
 
-type InstanceEngine struct {
+type ProcessEngine struct {
 	tx                  *gorm.DB                // 数据库事务对象
 	currentUserId       uint                    // 当前用户id
 	tenantId            uint                    // 当前租户id
@@ -33,8 +33,8 @@ type InstanceEngine struct {
 }
 
 // 初始化流程引擎
-func NewInstanceEngine(p model.ProcessDefinition, instance model.ProcessInstance, currentUserId uint, tenantId uint, tx *gorm.DB) (*InstanceEngine, error) {
-	return &InstanceEngine{
+func NewProcessEngine(p model.ProcessDefinition, instance model.ProcessInstance, currentUserId uint, tenantId uint, tx *gorm.DB) (*ProcessEngine, error) {
+	return &ProcessEngine{
 		ProcessDefinition:   p,
 		ProcessInstance:     instance,
 		DefinitionStructure: p.Structure,
@@ -44,8 +44,8 @@ func NewInstanceEngine(p model.ProcessDefinition, instance model.ProcessInstance
 	}, nil
 }
 
-// 初始化流程引擎(带process instance)
-func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint, tx *gorm.DB) (*InstanceEngine, error) {
+// 初始化流程引擎(带process_instance)
+func NewProcessEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint, tx *gorm.DB) (*ProcessEngine, error) {
 	var processInstance model.ProcessInstance
 	var processDefinition model.ProcessDefinition
 
@@ -69,7 +69,7 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, t
 		return nil, fmt.Errorf("找不到当前processDefinitionId为 %v 的记录", processInstance.ProcessDefinitionId)
 	}
 
-	return &InstanceEngine{
+	return &ProcessEngine{
 		ProcessInstance:     processInstance,
 		ProcessDefinition:   processDefinition,
 		DefinitionStructure: processDefinition.Structure,
@@ -80,9 +80,9 @@ func NewInstanceEngineByInstanceId(processInstanceId uint, currentUserId uint, t
 }
 
 // 获取instance的初始state
-func (i *InstanceEngine) GetInstanceInitialState() (dto.StateArray, error) {
+func (engine *ProcessEngine) GetInstanceInitialState() (dto.StateArray, error) {
 	var startNode dto.Node
-	for _, node := range i.DefinitionStructure.Nodes {
+	for _, node := range engine.DefinitionStructure.Nodes {
 		if node.Clazz == constant.START {
 			startNode = node
 		}
@@ -90,7 +90,7 @@ func (i *InstanceEngine) GetInstanceInitialState() (dto.StateArray, error) {
 
 	// 获取firstEdge
 	firstEdge := dto.Edge{}
-	for _, edge := range i.DefinitionStructure.Edges {
+	for _, edge := range engine.DefinitionStructure.Edges {
 		if edge.Source == startNode.Id {
 			firstEdge = edge
 			break
@@ -104,7 +104,7 @@ func (i *InstanceEngine) GetInstanceInitialState() (dto.StateArray, error) {
 	firstEdgeTargetId := firstEdge.Target
 	nextNode := dto.Node{}
 	// 获取接下来的节点nextNode
-	for _, node := range i.DefinitionStructure.Nodes {
+	for _, node := range engine.DefinitionStructure.Nodes {
 		if node.Id == firstEdgeTargetId {
 			nextNode = node
 			break
@@ -115,36 +115,42 @@ func (i *InstanceEngine) GetInstanceInitialState() (dto.StateArray, error) {
 	}
 
 	// 获取初始的states
-	return i.GenStates([]dto.Node{nextNode})
+	return engine.GenStates([]dto.Node{nextNode})
 }
 
 // 流程处理
-func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
+func (engine *ProcessEngine) Handle(r *request.HandleInstancesRequest) error {
 	// 获取edge
-	edge, err := i.GetEdge(r.EdgeID)
+	edge, err := engine.GetEdge(r.EdgeID)
 	if err != nil {
 		return err
 	}
 
 	// 获取两个node
-	sourceNode, _ := i.GetNode(edge.Source)
-	targetNode, err := i.GetTargetNodeByEdgeId(r.EdgeID)
+	sourceNode, _ := engine.GetNode(edge.Source)
+	targetNode, err := engine.GetTargetNodeByEdgeId(r.EdgeID)
 	if err != nil {
 		return err
 	}
 
 	// 设置当前的节点和顺序流信息
-	i.SetCurrentNodeEdgeInfo(&sourceNode, &edge, &targetNode)
-	i.UpdateRelatedPerson()
+	engine.SetCurrentNodeEdgeInfo(&sourceNode, &edge, &targetNode)
+	engine.UpdateRelatedPerson()
 
+	// handle内部(有递归操作，针对比如排他网关后还是排他网关等场景)
+	return engine.handleInternal(r, 1)
+}
+
+// 流程处理内部(用于递归)
+func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, deepLevel int) error {
 	// 判断当前节点是否会签
-	isCounterSign, isLastProcessor, err := i.JudgeCounterSign()
+	isCounterSign, isLastProcessor, err := engine.JudgeCounterSign()
 	if err != nil {
 		return err
 	}
 
 	// 添加历史记录(这条只是保底的, 后续还会有其他的判断)
-	err = i.CreateCirculationHistory(r.Remarks)
+	err = engine.CreateCirculationHistory(r.Remarks)
 	if err != nil {
 		return err
 	}
@@ -155,69 +161,96 @@ func (i *InstanceEngine) Handle(r *request.HandleInstancesRequest) error {
 		return nil
 	}
 
-	// 判断目标节点的类型，有不同的处理方式
-	switch targetNode.Clazz {
-	case constant.UserTask, constant.End:
-		newStates, err := i.GenStates([]dto.Node{targetNode})
-		if err != nil {
-			return err
-		}
-		err = i.Circulation(newStates)
-		if err != nil {
-			return err
-		}
-	case constant.ExclusiveGateway:
-		err := i.ProcessingExclusiveGateway(targetNode, r)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", targetNode.Clazz)
+	// 递归中, 当sourceNode为结束事件的情况下targetNode会为空
+	if engine.targetNode == nil {
+		return nil
 	}
 
-	// TODO: 这里可以跟 【目前的handle, 如果排他网关后面还是排他网关，会有问题】一起优化掉，应该需要递归
-	originTargetNode := targetNode
-	switch originTargetNode.Clazz {
-	case constant.ExclusiveGateway:
-		// 由于排他网关理论上会跳至少两次【原节点->排他网关->后续节点】
-		// 所以需要再
-		err := i.CreateCirculationHistory(r.Remarks)
+	// 判断目标节点的类型，有不同的处理方式
+	switch engine.targetNode.Clazz {
+	case constant.UserTask:
+		// 只有第一次进来，针对userTask才需要跳转. 后续的直接退出
+		if deepLevel > 1 {
+			break
+		}
+		newStates, err := engine.GenStates([]dto.Node{*engine.targetNode})
 		if err != nil {
 			return err
 		}
-
-		// 判断二次是否是end
-		if i.targetNode != nil && i.targetNode.Clazz == constant.End {
-			i.SetCurrentNodeEdgeInfo(i.targetNode, nil, nil)
-			err = i.CreateCirculationHistory(r.Remarks)
-			if err != nil {
-				return err
-			}
+		err = engine.Circulation(newStates)
+		if err != nil {
+			return err
 		}
 	case constant.End:
-		i.SetCurrentNodeEdgeInfo(i.targetNode, nil, nil)
-		err = i.CreateCirculationHistory(r.Remarks)
+		// 只有第一次进来，才需要跳转
+		// 非第一次的递归记一条新的日志就退出
+		if deepLevel > 1 {
+			engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
+			return engine.handleInternal(r, deepLevel+1)
+		}
+		newStates, err := engine.GenStates([]dto.Node{*engine.targetNode})
 		if err != nil {
 			return err
 		}
+		err = engine.Circulation(newStates)
+		if err != nil {
+			return err
+		}
+	case constant.ExclusiveGateway:
+		err := engine.ProcessingExclusiveGateway(*engine.targetNode, r)
+		if err != nil {
+			return err
+		}
+
+		// 递归处理
+		return engine.handleInternal(r, deepLevel+1)
+	default:
+		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", engine.targetNode.Clazz)
 	}
+	//
+	//// TODO: 这里可以跟 【目前的handle, 如果排他网关后面还是排他网关，会有问题】一起优化掉，应该需要递归
+	//originTargetNode := engine.targetNode
+	//switch originTargetNode.Clazz {
+	//case constant.ExclusiveGateway:
+	//	// 由于排他网关理论上会跳至少两次【原节点->排他网关->后续节点】
+	//	// 所以需要再
+	//	err := engine.CreateCirculationHistory(r.Remarks)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	// 判断二次是否是end
+	//	if engine.targetNode != nil && engine.targetNode.Clazz == constant.End {
+	//		engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
+	//		err = engine.CreateCirculationHistory(r.Remarks)
+	//		if err != nil {
+	//			return err
+	//		}
+	//	}
+	//case constant.End:
+	//	engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
+	//	err = engine.CreateCirculationHistory(r.Remarks)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }
 
-func (i *InstanceEngine) SetCurrentNodeEdgeInfo(sourceNode *dto.Node, edge *dto.Edge, targetNode *dto.Node) {
-	i.sourceNode = sourceNode
-	i.linkEdge = edge
-	i.targetNode = targetNode
+func (engine *ProcessEngine) SetCurrentNodeEdgeInfo(sourceNode *dto.Node, edge *dto.Edge, targetNode *dto.Node) {
+	engine.sourceNode = sourceNode
+	engine.linkEdge = edge
+	engine.targetNode = targetNode
 }
 
 // 获取edge
-func (i *InstanceEngine) GetEdge(edgeId string) (dto.Edge, error) {
-	if len(i.DefinitionStructure.Edges) == 0 {
+func (engine *ProcessEngine) GetEdge(edgeId string) (dto.Edge, error) {
+	if len(engine.DefinitionStructure.Edges) == 0 {
 		return dto.Edge{}, errors.New("当前模板结构不合法, 缺少edges, 请检查")
 	}
 
-	for _, edge := range i.DefinitionStructure.Edges {
+	for _, edge := range engine.DefinitionStructure.Edges {
 		if edge.Id == edgeId {
 			return edge, nil
 		}
@@ -228,9 +261,9 @@ func (i *InstanceEngine) GetEdge(edgeId string) (dto.Edge, error) {
 
 // i.GetEdges("userTask123", "source") 获取所有source为userTask123的edges
 // i.GetEdges("userTask123", "target") 获取所有target为userTask123的edges
-func (i *InstanceEngine) GetEdges(nodeId string, nodeIdType string) []dto.Edge {
+func (engine *ProcessEngine) GetEdges(nodeId string, nodeIdType string) []dto.Edge {
 	edges := make([]dto.Edge, 0)
-	for _, edge := range i.DefinitionStructure.Edges {
+	for _, edge := range engine.DefinitionStructure.Edges {
 		switch nodeIdType {
 		case "source":
 			if edge.Source == nodeId {
@@ -252,12 +285,12 @@ func (i *InstanceEngine) GetEdges(nodeId string, nodeIdType string) []dto.Edge {
 }
 
 // 获取node
-func (i *InstanceEngine) GetNode(nodeId string) (dto.Node, error) {
-	if len(i.DefinitionStructure.Nodes) == 0 {
+func (engine *ProcessEngine) GetNode(nodeId string) (dto.Node, error) {
+	if len(engine.DefinitionStructure.Nodes) == 0 {
 		return dto.Node{}, errors.New("当前模板结构不合法, 缺少nodes, 请检查")
 	}
 
-	for _, node := range i.DefinitionStructure.Nodes {
+	for _, node := range engine.DefinitionStructure.Nodes {
 		if node.Id == nodeId {
 			return node, nil
 		}
@@ -267,17 +300,17 @@ func (i *InstanceEngine) GetNode(nodeId string) (dto.Node, error) {
 }
 
 // 获取edge上的targetNode
-func (i *InstanceEngine) GetTargetNodeByEdgeId(edgeId string) (dto.Node, error) {
-	edge, err := i.GetEdge(edgeId)
+func (engine *ProcessEngine) GetTargetNodeByEdgeId(edgeId string) (dto.Node, error) {
+	edge, err := engine.GetEdge(edgeId)
 	if err != nil {
 		return dto.Node{}, err
 	}
 
-	return i.GetNode(edge.Target)
+	return engine.GetNode(edge.Target)
 }
 
 // 获取数据库process_instance表存储的state字段的对象
-func (i *InstanceEngine) GenStates(nodes []dto.Node) (dto.StateArray, error) {
+func (engine *ProcessEngine) GenStates(nodes []dto.Node) (dto.StateArray, error) {
 	states := dto.StateArray{}
 	for _, node := range nodes {
 		state := dto.State{
@@ -295,7 +328,7 @@ func (i *InstanceEngine) GenStates(nodes []dto.Node) (dto.StateArray, error) {
 		if node.AssignType != "" && node.AssignValue != nil {
 			switch node.AssignType {
 			case "role": // 审批者是role, 需要转成person
-				processors, err := i.GetUserIdsByRoleIds(node.AssignValue)
+				processors, err := engine.GetUserIdsByRoleIds(node.AssignValue)
 				if err != nil {
 					return nil, err
 				}
@@ -311,7 +344,7 @@ func (i *InstanceEngine) GenStates(nodes []dto.Node) (dto.StateArray, error) {
 
 		// 获取可用的edge
 		availableEdges := make([]dto.Edge, 0, 1)
-		for _, edge := range i.DefinitionStructure.Edges {
+		for _, edge := range engine.DefinitionStructure.Edges {
 			if edge.Source == node.Id {
 				availableEdges = append(availableEdges, edge)
 			}
@@ -325,11 +358,11 @@ func (i *InstanceEngine) GenStates(nodes []dto.Node) (dto.StateArray, error) {
 }
 
 // 通过角色id获取用户id
-func (i *InstanceEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
+func (engine *ProcessEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
 	var roleUsersList []model.RoleUsers
 	err := global.BankDb.
 		Model(&model.RoleUsers{}).
-		Where("tenant_id = ?", i.tenantId).
+		Where("tenant_id = ?", engine.tenantId).
 		Where("role_id in ?", roleIds).
 		Find(&roleUsersList).
 		Error
@@ -350,7 +383,7 @@ func (i *InstanceEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
 
 	// 转成[]string
 	finalUserIds := make([]int, 0)
-	for k, _ := range finalUserIdMap {
+	for k := range finalUserIdMap {
 		finalUserIds = append(finalUserIds, int(k))
 	}
 
@@ -358,9 +391,9 @@ func (i *InstanceEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
 }
 
 // 合并更新变量
-func (i *InstanceEngine) UpdateVariables(newVariables []model.InstanceVariable) {
+func (engine *ProcessEngine) UpdateVariables(newVariables []model.InstanceVariable) {
 	// 反序列化出来
-	originVariables := util.UnmarshalToInstanceVariables(i.ProcessInstance.Variables)
+	originVariables := util.UnmarshalToInstanceVariables(engine.ProcessInstance.Variables)
 
 	// 查询优化先整理成map
 	originVariableMap := make(map[string]model.InstanceVariable, len(originVariables))
@@ -377,13 +410,13 @@ func (i *InstanceEngine) UpdateVariables(newVariables []model.InstanceVariable) 
 		finalVariables = append(finalVariables, v)
 	}
 
-	i.ProcessInstance.Variables = util.MarshalToDbJson(finalVariables)
+	engine.ProcessInstance.Variables = util.MarshalToDbJson(finalVariables)
 }
 
 // 获取初始节点
-func (i *InstanceEngine) GetInitialNode() (dto.Node, error) {
+func (engine *ProcessEngine) GetInitialNode() (dto.Node, error) {
 	startNode := dto.Node{}
-	for _, node := range i.DefinitionStructure.Nodes {
+	for _, node := range engine.DefinitionStructure.Nodes {
 		if node.Clazz == constant.START {
 			startNode = node
 		}
@@ -396,13 +429,14 @@ func (i *InstanceEngine) GetInitialNode() (dto.Node, error) {
 	return startNode, nil
 }
 
-func (i *InstanceEngine) GetNextNodes(sourceNode dto.Node) ([]dto.Node, error) {
-	edges := i.GetEdges(sourceNode.Id, "source")
+// 通过sourceNode获取TargetNodes列表
+func (engine *ProcessEngine) GetTargetNodes(sourceNode dto.Node) ([]dto.Node, error) {
+	edges := engine.GetEdges(sourceNode.Id, "source")
 
 	nextNodes := make([]dto.Node, 0, 1)
 
 	for _, edge := range edges {
-		node, err := i.GetTargetNodeByEdgeId(edge.Id)
+		node, err := engine.GetTargetNodeByEdgeId(edge.Id)
 		if err != nil {
 			return nil, err
 		}

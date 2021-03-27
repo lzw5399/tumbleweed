@@ -16,38 +16,38 @@ import (
 )
 
 // 一般流转处理，兼顾了会签的判断
-func (i *InstanceEngine) CommonProcessing(newStates dto.StateArray) error {
+func (engine *ProcessEngine) CommonProcessing(newStates dto.StateArray) error {
 	// 如果是拒绝的流程直接跳转
-	if i.linkEdge.FlowProperties == "0" {
-		return i.Circulation(newStates)
+	if engine.linkEdge.FlowProperties == "0" {
+		return engine.Circulation(newStates)
 	}
 
 	// TODO 暂不支持并行网关，这边先判断0
-	state := i.ProcessInstance.State[0]
+	state := engine.ProcessInstance.State[0]
 	// 不是会签直接跳
 	if !state.IsCounterSign {
-		return i.Circulation(newStates)
+		return engine.Circulation(newStates)
 	}
 
 	// 判断当前用户是否会签的最后一个人
-	isLastPerson, err := i.IsCounterSignLastProcessor()
+	isLastPerson, err := engine.IsCounterSignLastProcessor()
 	if err != nil {
 		return err
 	}
 	if isLastPerson {
-		return i.Circulation(newStates)
+		return engine.Circulation(newStates)
 	}
 
 	// 不是会签的最后一个人, 则更新
 	toUpdate := map[string]interface{}{
-		"state":          i.ProcessInstance.State,
+		"state":          engine.ProcessInstance.State,
 		"update_time":    time.Now().Local(),
-		"update_by":      i.currentUserId,
-		"related_person": i.ProcessInstance.RelatedPerson,
-		"variables":      i.ProcessInstance.Variables,
+		"update_by":      engine.currentUserId,
+		"related_person": engine.ProcessInstance.RelatedPerson,
+		"variables":      engine.ProcessInstance.Variables,
 	}
 
-	err = i.tx.Model(&i.ProcessInstance).
+	err = engine.tx.Model(&engine.ProcessInstance).
 		Updates(toUpdate).
 		Error
 
@@ -55,23 +55,23 @@ func (i *InstanceEngine) CommonProcessing(newStates dto.StateArray) error {
 }
 
 // processInstance流转处理
-func (i *InstanceEngine) Circulation(newStates dto.StateArray) error {
+func (engine *ProcessEngine) Circulation(newStates dto.StateArray) error {
 	toUpdate := map[string]interface{}{
 		"state":          newStates,
-		"related_person": i.ProcessInstance.RelatedPerson,
+		"related_person": engine.ProcessInstance.RelatedPerson,
 		"is_end":         false,
 		"update_time":    time.Now().Local(),
-		"update_by":      i.currentUserId,
-		"variables":      i.ProcessInstance.Variables,
+		"update_by":      engine.currentUserId,
+		"variables":      engine.ProcessInstance.Variables,
 	}
 
 	// 如果是跳转到结束节点，则需要修改节点状态
-	if i.targetNode.Clazz == constant.End {
+	if engine.targetNode.Clazz == constant.End {
 		toUpdate["is_end"] = true
 	}
 
-	err := i.tx.
-		Model(&i.ProcessInstance).
+	err := engine.tx.
+		Model(&engine.ProcessInstance).
 		Updates(toUpdate).
 		Error
 
@@ -79,27 +79,27 @@ func (i *InstanceEngine) Circulation(newStates dto.StateArray) error {
 }
 
 // 否决
-func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
+func (engine *ProcessEngine) Deny(r *request.DenyInstanceRequest) error {
 	// 获取最新的相关者RelatedPerson
-	i.UpdateRelatedPerson()
+	engine.UpdateRelatedPerson()
 
 	// 更新instance字段
 	toUpdate := map[string]interface{}{
-		"related_person": i.ProcessInstance.RelatedPerson,
+		"related_person": engine.ProcessInstance.RelatedPerson,
 		"is_denied":      true,
 		"update_time":    time.Now().Local(),
-		"update_by":      i.currentUserId,
+		"update_by":      engine.currentUserId,
 	}
 
-	err := i.tx.
-		Model(&i.ProcessInstance).
+	err := engine.tx.
+		Model(&engine.ProcessInstance).
 		Updates(toUpdate).
 		Error
 
 	// 获取上一条的流转历史的CreateTime来计算CostDuration
 	var lastCirculation model.CirculationHistory
-	err = i.tx.
-		Where("process_instance_id = ?", i.ProcessInstance.Id).
+	err = engine.tx.
+		Where("process_instance_id = ?", engine.ProcessInstance.Id).
 		Order("create_time desc").
 		Select("create_time").
 		First(&lastCirculation).
@@ -111,24 +111,24 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 
 	// 创建新的一条流转历史
 	// todo 这里先判断[0]
-	state := i.ProcessInstance.State[0]
+	state := engine.ProcessInstance.State[0]
 	cirHistory := model.CirculationHistory{
 		AuditableBase: model.AuditableBase{
-			CreateBy: i.currentUserId,
-			UpdateBy: i.currentUserId,
+			CreateBy: engine.currentUserId,
+			UpdateBy: engine.currentUserId,
 		},
-		Title:             i.ProcessInstance.Title,
-		ProcessInstanceId: i.ProcessInstance.Id,
+		Title:             engine.ProcessInstance.Title,
+		ProcessInstanceId: engine.ProcessInstance.Id,
 		SourceState:       state.Label,
 		SourceId:          state.Id,
 		TargetId:          "",
 		Circulation:       "否决",
-		ProcessorId:       i.currentUserId,
+		ProcessorId:       engine.currentUserId,
 		CostDuration:      duration,
 		Remarks:           r.Remarks,
 	}
 
-	err = i.tx.
+	err = engine.tx.
 		Model(&model.CirculationHistory{}).
 		Create(&cirHistory).
 		Error
@@ -141,16 +141,16 @@ func (i *InstanceEngine) Deny(r *request.DenyInstanceRequest) error {
 }
 
 // 更新relatedPerson
-func (i *InstanceEngine) UpdateRelatedPerson() {
+func (engine *ProcessEngine) UpdateRelatedPerson() {
 	// 获取最新的相关者RelatedPerson
 	exist := false
-	for _, person := range i.ProcessInstance.RelatedPerson {
-		if uint(person) == i.currentUserId {
+	for _, person := range engine.ProcessInstance.RelatedPerson {
+		if uint(person) == engine.currentUserId {
 			exist = true
 			break
 		}
 	}
 	if !exist {
-		i.ProcessInstance.RelatedPerson = append(i.ProcessInstance.RelatedPerson, int64(i.currentUserId))
+		engine.ProcessInstance.RelatedPerson = append(engine.ProcessInstance.RelatedPerson, int64(engine.currentUserId))
 	}
 }
