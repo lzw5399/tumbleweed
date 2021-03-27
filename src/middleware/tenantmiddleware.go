@@ -7,7 +7,6 @@ package middleware
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -79,7 +78,7 @@ func UpdateTenantCache() *[]model.Tenant {
 		Find(&tenants)
 
 	global.BankCache.SetDefault("tenants", tenants)
-	log.Print("租户缓存更新成功")
+	global.BankLogger.Infoln("租户缓存更新成功")
 
 	return &tenants
 }

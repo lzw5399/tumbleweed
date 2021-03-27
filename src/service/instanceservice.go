@@ -62,7 +62,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// 初始化流程引擎
-	instanceEngine, err := engine.NewInstanceEngine(processDefinition, r.ToProcessInstance(currentUserId, tenantId), currentUserId, tenantId, tx)
+	instanceEngine, err := engine.NewProcessEngine(processDefinition, r.ToProcessInstance(currentUserId, tenantId), currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +76,8 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 
 	// TODO 这里判断下一步是排他网关等情况
 
-	// processInstance某些字段更新
-	instanceEngine.ProcessInstance.RelatedPerson = append(instanceEngine.ProcessInstance.RelatedPerson, int64(currentUserId))
+	// 更新instance的关联人
+	instanceEngine.UpdateRelatedPerson()
 
 	// 创建
 	err = instanceEngine.CreateProcessInstance()
@@ -168,9 +168,9 @@ func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, cu
 // 处理/审批ProcessInstance
 func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		instanceEngine *engine.InstanceEngine
-		err            error
-		tx             = global.BankDb.Begin() // 开启事务
+		processEngine *engine.ProcessEngine
+		err           error
+		tx            = global.BankDb.Begin() // 开启事务
 	)
 
 	// 验证变量是否符合要求
@@ -180,41 +180,41 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	}
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	processEngine, err = engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
 
 	// 验证合法性(1.edgeId是否合法 2.当前用户是否有权限处理)
-	err = instanceEngine.ValidateHandleRequest(r)
+	err = processEngine.ValidateHandleRequest(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// 合并最新的变量
-	instanceEngine.UpdateVariables(r.Variables)
+	processEngine.UpdateVariables(r.Variables)
 
 	// 处理操作, 判断这里的原因是因为上面都不会进行数据库改动操作
-	err = instanceEngine.Handle(r)
+	err = processEngine.Handle(r)
 	if err != nil {
 		tx.Rollback()
 	} else {
 		tx.Commit()
 	}
 
-	return &instanceEngine.ProcessInstance, err
+	return &processEngine.ProcessInstance, err
 }
 
 // 否决流程
 func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		instanceEngine *engine.InstanceEngine
+		instanceEngine *engine.ProcessEngine
 		err            error
 		tx             = global.BankDb.Begin() // 开启事务
 	)
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	instanceEngine, err = engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -411,8 +411,4 @@ func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId strin
 			getPossibleTrainNode(definitionStructure, targetNodeId, dependencies, possibleTrainNodes)
 		}
 	}
-}
-
-func Test() error {
-	return util.BadRequest.New("nono")
 }

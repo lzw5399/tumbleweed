@@ -61,14 +61,6 @@ func loadEnvToStruct(v reflect.Value, dependencies []string) {
 	}
 }
 
-func genCurrentEnvs(key string) {
-	if v := os.Getenv(key); v == "" {
-		fmt.Println("current key doesn't exist, please double check.")
-	}
-
-	
-}
-
 func genDependenciesString(dependencies []string, fieldName string) string {
 	prefix := strings.Join(dependencies, "__")
 	if prefix == "" {

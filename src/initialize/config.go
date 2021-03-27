@@ -16,10 +16,7 @@ import (
 	"github.com/jinzhu/configor"
 )
 
-// 同一个包内有多个init，则会按文件名顺序执行
-// 部分其他的init会依赖当前这个config的init
-// 所以如果需要依赖，不要让package内的其他文件排在config.go前面
-func init() {
+func setupConfig() {
 	envCode := getEnvCode()
 	overrideConfigFileName := fmt.Sprintf("src/config/appsettings.%s.yaml", envCode)
 

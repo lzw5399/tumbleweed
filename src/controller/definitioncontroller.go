@@ -6,10 +6,9 @@
 package controller
 
 import (
-	"log"
-
 	"github.com/labstack/echo/v4"
 
+	"workflow/src/global"
 	"workflow/src/global/response"
 	"workflow/src/model/request"
 	"workflow/src/service"
@@ -50,7 +49,7 @@ func CreateProcessDefinition(c echo.Context) error {
 	currentUserId := util.GetCurrentUserId(c)
 	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
-		log.Printf("CreateProcess错误，原因: %s", err.Error())
+		global.BankLogger.Error("CreateProcess错误", err)
 		return response.Failed(c, err)
 	}
 
@@ -86,7 +85,7 @@ func UpdateProcessDefinition(c echo.Context) error {
 	currentUserId := util.GetCurrentUserId(c)
 	err = definitionService.UpdateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
-		log.Printf("UpdateProcessDefinition错误，原因: %s", err.Error())
+		global.BankLogger.Error("UpdateProcessDefinition错误", err)
 		return response.Failed(c, err)
 	}
 
