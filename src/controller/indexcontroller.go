@@ -6,28 +6,31 @@
 package controller
 
 import (
-	"errors"
 	"time"
 
-	"workflow/src/global"
 	"workflow/src/global/response"
 
 	"github.com/labstack/echo/v4"
 )
 
 func Index(c echo.Context) error {
-	err := errors.New("错误")
-	global.BankLogger.Info("测试info")
-	global.BankLogger.Debug("测试debug")
-	global.BankLogger.Warning("测试warning")
-	global.BankLogger.Error("测试error",err)
 	return response.OkWithData(c, time.Now().Local())
 }
 
+// @Tags health
+// @Accept  json
+// @Produce json
+// @Success 200 {object} response.HttpResponse
+// @Router /health/alive [GET]
 func Liveliness(c echo.Context) error {
 	return response.Ok(c)
 }
 
+// @Tags health
+// @Accept  json
+// @Produce json
+// @Success 200 {object} response.HttpResponse
+// @Router /health/ready [GET]
 func Readiness(c echo.Context) error {
 	return response.Ok(c)
 }

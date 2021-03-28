@@ -22,7 +22,7 @@ func (engine *ProcessEngine) CreateProcessInstance() error {
 	// 创建历史记录
 	initialNode, _ := engine.GetInitialNode()
 	nextNodes, _ := engine.GetTargetNodes(initialNode)
-	nextNode := nextNodes[0]
+	nextNode := nextNodes[0] // 开始节点后面只会直连一个节点
 	engine.SetCurrentNodeEdgeInfo(&initialNode, nil, &nextNode)
 	err = engine.CreateCirculationHistory("")
 	if err != nil {

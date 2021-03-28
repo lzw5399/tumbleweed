@@ -24,7 +24,7 @@ var doc = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/process-definitions": {
+        "/api/wf/process-definitions": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -188,7 +188,7 @@ var doc = `{
                 }
             }
         },
-        "/api/process-definitions/{id}": {
+        "/api/wf/process-definitions/{id}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -270,7 +270,7 @@ var doc = `{
                 }
             }
         },
-        "/api/process-instances": {
+        "/api/wf/process-instances": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -389,7 +389,7 @@ var doc = `{
                 }
             }
         },
-        "/api/process-instances/_deny": {
+        "/api/wf/process-instances/_deny": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -436,7 +436,7 @@ var doc = `{
                 }
             }
         },
-        "/api/process-instances/_handle": {
+        "/api/wf/process-instances/_handle": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -483,7 +483,7 @@ var doc = `{
                 }
             }
         },
-        "/api/process-instances/{id}": {
+        "/api/wf/process-instances/{id}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -531,7 +531,7 @@ var doc = `{
                 }
             }
         },
-        "/api/process-instances/{id}/train-nodes": {
+        "/api/wf/process-instances/{id}/train-nodes": {
             "get": {
                 "produces": [
                     "application/json"
@@ -573,7 +573,7 @@ var doc = `{
                 }
             }
         },
-        "/api/role-users": {
+        "/api/wf/role-users": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -620,7 +620,7 @@ var doc = `{
                 }
             }
         },
-        "/api/role-users/_batch": {
+        "/api/wf/role-users/_batch": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -666,6 +666,48 @@ var doc = `{
                     }
                 }
             }
+        },
+        "/health/alive": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -700,6 +742,10 @@ var doc = `{
         "request.DenyInstanceRequest": {
             "type": "object",
             "properties": {
+                "nodeId": {
+                    "description": "所在节点的id",
+                    "type": "string"
+                },
                 "processInstanceId": {
                     "description": "流程实例的id",
                     "type": "integer"

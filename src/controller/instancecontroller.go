@@ -28,7 +28,7 @@ var (
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-instances [post]
+// @Router /api/wf/process-instances [post]
 func CreateProcessInstance(c echo.Context) error {
 	var r request.ProcessInstanceRequest
 	if err := c.Bind(&r); err != nil {
@@ -53,7 +53,7 @@ func CreateProcessInstance(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-instances [GET]
+// @Router /api/wf/process-instances [GET]
 func ListProcessInstances(c echo.Context) error {
 	// 从queryString获取分页参数
 	var r request.InstanceListRequest
@@ -78,7 +78,7 @@ func ListProcessInstances(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-instances/_handle [POST]
+// @Router /api/wf/process-instances/_handle [POST]
 func HandleProcessInstance(c echo.Context) error {
 	var r request.HandleInstancesRequest
 	if err := c.Bind(&r); err != nil {
@@ -102,7 +102,7 @@ func HandleProcessInstance(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-instances/_deny [POST]
+// @Router /api/wf/process-instances/_deny [POST]
 func DenyProcessInstance(c echo.Context) error {
 	var r request.DenyInstanceRequest
 	if err := c.Bind(&r); err != nil {
@@ -127,7 +127,7 @@ func DenyProcessInstance(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-instances/{id} [GET]
+// @Router /api/wf/process-instances/{id} [GET]
 func GetProcessInstance(c echo.Context) error {
 	var r request.GetInstanceRequest
 	if err := c.Bind(&r); err != nil {
@@ -151,7 +151,7 @@ func GetProcessInstance(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-instances/{id}/train-nodes [GET]
+// @Router /api/wf/process-instances/{id}/train-nodes [GET]
 func GetProcessTrain(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

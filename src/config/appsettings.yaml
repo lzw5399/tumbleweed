@@ -1,9 +1,5 @@
 app:
-  name: 'bank.workflow.engine'
-
-log:
-  prefix: '[bank.workflow.engine]'
-  stdout: 'DEBUG'
+  name: 'workflow-engine'
 
 db:
   host: 127.0.0.1

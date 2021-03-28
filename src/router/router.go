@@ -22,8 +22,8 @@ func Setup() *echo.Echo {
 
 	// probe
 	r.GET("/", controller.Index)
-	r.GET("/info/ready", controller.Readiness)
-	r.GET("/info/alive", controller.Liveliness)
+	r.GET("/health/ready", controller.Readiness)
+	r.GET("/health/alive", controller.Liveliness)
 
 	// swagger
 	if global.BankConfig.App.EnableSwagger {
@@ -31,7 +31,7 @@ func Setup() *echo.Echo {
 	}
 
 	// apis
-	g := r.Group("/api", customMiddleware.MultiTenant, customMiddleware.Auth)
+	g := r.Group("/api/wf", customMiddleware.MultiTenant, customMiddleware.Auth)
 	{
 		RegisterProcessDefinition(g) // 流程定义
 		RegisterProcessInstance(g)   // 流程实例

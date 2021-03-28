@@ -7,6 +7,7 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"workflow/src/global"
@@ -84,7 +85,8 @@ func (engine *ProcessEngine) ConditionJudgment(condExpr string) (bool, error) {
 
 	result, err := util.CalculateExpression(condExpr, envMap)
 	if err != nil {
-		global.BankLogger.Errorf("计算表达式发生错误, 当前表达式：%s ,当前变量:%v, 错误原因：%s", condExpr, envMap, err.Error())
+		err = fmt.Errorf("计算表达式发生错误, 当前表达式：%s ,当前变量:%v, 错误原因：%s", condExpr, envMap, err.Error())
+		global.BankLogger.Error(err)
 		return false, err
 	}
 

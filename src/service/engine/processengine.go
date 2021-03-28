@@ -85,6 +85,7 @@ func (engine *ProcessEngine) GetInstanceInitialState() (dto.StateArray, error) {
 	for _, node := range engine.DefinitionStructure.Nodes {
 		if node.Clazz == constant.START {
 			startNode = node
+			break
 		}
 	}
 
@@ -121,14 +122,14 @@ func (engine *ProcessEngine) GetInstanceInitialState() (dto.StateArray, error) {
 // 流程处理
 func (engine *ProcessEngine) Handle(r *request.HandleInstancesRequest) error {
 	// 获取edge
-	edge, err := engine.GetEdge(r.EdgeID)
+	edge, err := engine.GetEdge(r.EdgeId)
 	if err != nil {
 		return err
 	}
 
 	// 获取两个node
 	sourceNode, _ := engine.GetNode(edge.Source)
-	targetNode, err := engine.GetTargetNodeByEdgeId(r.EdgeID)
+	targetNode, err := engine.GetTargetNodeByEdgeId(r.EdgeId)
 	if err != nil {
 		return err
 	}
@@ -137,7 +138,7 @@ func (engine *ProcessEngine) Handle(r *request.HandleInstancesRequest) error {
 	engine.SetCurrentNodeEdgeInfo(&sourceNode, &edge, &targetNode)
 	engine.UpdateRelatedPerson()
 
-	// handle内部(有递归操作，针对比如排他网关后还是排他网关等场景)
+	// handle内部(有递归操作，针对比如网关后还是网关等场景)
 	return engine.handleInternal(r, 1)
 }
 
@@ -181,6 +182,7 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		if err != nil {
 			return err
 		}
+
 	case constant.End:
 		// 只有第一次进来，才需要跳转
 		// 非第一次的递归记一条新的日志就退出
@@ -196,6 +198,7 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		if err != nil {
 			return err
 		}
+
 	case constant.ExclusiveGateway:
 		err := engine.ProcessingExclusiveGateway(*engine.targetNode, r)
 		if err != nil {
@@ -204,36 +207,19 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 
 		// 递归处理
 		return engine.handleInternal(r, deepLevel+1)
+
+	case constant.ParallelGateway:
+		err := engine.ProcessParallelGateway()
+		if err != nil {
+			return err
+		}
+
+		// 递归处理
+		return engine.handleInternal(r, deepLevel+1)
+
 	default:
 		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", engine.targetNode.Clazz)
 	}
-	//
-	//// TODO: 这里可以跟 【目前的handle, 如果排他网关后面还是排他网关，会有问题】一起优化掉，应该需要递归
-	//originTargetNode := engine.targetNode
-	//switch originTargetNode.Clazz {
-	//case constant.ExclusiveGateway:
-	//	// 由于排他网关理论上会跳至少两次【原节点->排他网关->后续节点】
-	//	// 所以需要再
-	//	err := engine.CreateCirculationHistory(r.Remarks)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	// 判断二次是否是end
-	//	if engine.targetNode != nil && engine.targetNode.Clazz == constant.End {
-	//		engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
-	//		err = engine.CreateCirculationHistory(r.Remarks)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	}
-	//case constant.End:
-	//	engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
-	//	err = engine.CreateCirculationHistory(r.Remarks)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
 
 	return nil
 }
@@ -445,4 +431,37 @@ func (engine *ProcessEngine) GetTargetNodes(sourceNode dto.Node) ([]dto.Node, er
 	}
 
 	return nextNodes, nil
+}
+
+// 根据nodeId获取state
+func (engine *ProcessEngine) GetStateByNodeId(nodeId string) (dto.State, error) {
+	state := dto.State{}
+	for _, s := range engine.ProcessInstance.State {
+		if s.Id == nodeId {
+			state = s
+		}
+	}
+
+	if state.Id == "" {
+		return state, errors.New("当前流程状态错误，对应的nodeId错误")
+	}
+
+	return state, nil
+}
+
+// 通过edgeId获取state
+func (engine *ProcessEngine) GetStateByEdgeId(edge dto.Edge) (dto.State, error) {
+	state := dto.State{}
+	for _, s := range engine.ProcessInstance.State {
+		if s.Id == edge.Source {
+			state = s
+			break
+		}
+	}
+
+	if state.Id == "" {
+		return state, util.BadRequest.New("当前审批不合法, 请检查")
+	}
+
+	return state, nil
 }
