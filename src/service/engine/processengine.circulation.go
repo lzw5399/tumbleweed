@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"workflow/src/global/constant"
-	"workflow/src/model"
 	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/util"
@@ -57,50 +56,15 @@ func (engine *ProcessEngine) Deny(r *request.DenyInstanceRequest) error {
 		Updates(toUpdate).
 		Error
 
-	// 获取上一条的流转历史的CreateTime来计算CostDuration
-	var lastCirculation model.CirculationHistory
-	err = engine.tx.
-		Where("process_instance_id = ?", engine.ProcessInstance.Id).
-		Order("create_time desc").
-		Select("create_time").
-		First(&lastCirculation).
-		Error
+	// 获取当前的node
+	node, err := engine.GetNode(r.NodeId)
 	if err != nil {
 		return err
 	}
-	duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
+	engine.SetCurrentNodeEdgeInfo(&node, nil, nil)
 
-	// 获取当前的state
-	state, err := engine.GetStateByNodeId(r.NodeId)
-	if err != nil {
-		return err
-	}
-
-	// 创建新的一条流转历史
-	cirHistory := model.CirculationHistory{
-		AuditableBase: model.AuditableBase{
-			CreateBy: engine.currentUserId,
-			UpdateBy: engine.currentUserId,
-		},
-		Title:             engine.ProcessInstance.Title,
-		ProcessInstanceId: engine.ProcessInstance.Id,
-		SourceState:       state.Label,
-		SourceId:          state.Id,
-		TargetId:          "",
-		Circulation:       "否决",
-		ProcessorId:       engine.currentUserId,
-		CostDuration:      duration,
-		Remarks:           r.Remarks,
-	}
-
-	err = engine.tx.
-		Model(&model.CirculationHistory{}).
-		Create(&cirHistory).
-		Error
-
-	if err != nil {
-		return err
-	}
+	// 创建历史记录
+	err = engine.CreateHistory(r.Remarks, true)
 
 	return err
 }

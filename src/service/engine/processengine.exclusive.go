@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"workflow/src/global"
+	"workflow/src/global/constant"
 	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/util"
@@ -45,20 +46,28 @@ func (engine *ProcessEngine) ProcessingExclusiveGateway(gatewayNode dto.Node, r 
 	}
 
 	// 3. 获取必要的信息
-	targetNode, err := engine.GetTargetNodeByEdgeId(hitEdge.Id)
+	newTargetNode, err := engine.GetTargetNodeByEdgeId(hitEdge.Id)
 	if err != nil {
 		return errors.New("模板结构错误")
 	}
 
-	newStates, err := engine.GenStates([]dto.Node{targetNode})
+	// 4. 合并获得最新的states
+	var removeStateId string
+	if engine.sourceNode.Clazz == constant.ExclusiveGateway || engine.sourceNode.Clazz == constant.ParallelGateway {
+		removeStateId = engine.targetNode.Id
+	} else {
+		removeStateId = engine.sourceNode.Id
+	}
+
+	newStates, err := engine.MergeStates(removeStateId, []dto.Node{newTargetNode})
 	if err != nil {
 		return err
 	}
 
-	// 4. 更新最新的node edge等信息
-	engine.SetCurrentNodeEdgeInfo(&gatewayNode, &hitEdge, &targetNode)
+	// 5. 更新最新的node edge等信息
+	engine.SetCurrentNodeEdgeInfo(&gatewayNode, &hitEdge, &newTargetNode)
 
-	// 5. 根据edge进行跳转
+	// 6. 根据edge进行跳转
 	err = engine.Circulation(newStates)
 	if err != nil {
 		return err
