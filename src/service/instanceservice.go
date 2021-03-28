@@ -190,7 +190,7 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	}
 
 	// 合并最新的变量
-	processEngine.UpdateVariables(r.Variables)
+	processEngine.MergeVariables(r.Variables)
 
 	// 处理操作, 判断这里的原因是因为上面都不会进行数据库改动操作
 	err = processEngine.Handle(r)

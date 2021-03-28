@@ -14,7 +14,7 @@ import (
 )
 
 // 创建流转历史记录
-func (engine *ProcessEngine) CreateCirculationHistory(remark string) error {
+func (engine *ProcessEngine) CreateHistory(remark string, isDenied bool) error {
 	// 源节点不为【开始事件】的，获取上一条的流转历史的CreateTime来计算CostDuration
 	duration := "0小时 0分钟"
 	if engine.sourceNode.Clazz != constant.START {
@@ -32,21 +32,23 @@ func (engine *ProcessEngine) CreateCirculationHistory(remark string) error {
 	}
 
 	// 根据不同的类型取不同的值
-	var sourceState, sourceId, targetId, circulation string
+	var (
+		sourceState           = engine.sourceNode.Label
+		sourceId              = engine.sourceNode.Id
+		targetId, circulation string
+	)
 	switch {
-	case engine.sourceNode.Clazz == constant.START:
-		sourceState = engine.sourceNode.Label
-		sourceId = engine.sourceNode.Id
+	case engine.sourceNode.Clazz == constant.START && !isDenied:
 		targetId = engine.targetNode.Id
-		circulation = "新建"
-	case engine.sourceNode.Clazz == constant.End:
-		sourceState = engine.sourceNode.Label
-		sourceId = engine.sourceNode.Id
-		targetId = ""
+		circulation = "开始"
+
+	case engine.sourceNode.Clazz == constant.End && !isDenied:
 		circulation = "结束"
+
+	case isDenied:
+		circulation = "否决"
+
 	default:
-		sourceState = engine.sourceNode.Label
-		sourceId = engine.sourceNode.Id
 		targetId = engine.targetNode.Id
 		circulation = engine.linkEdge.Label
 	}

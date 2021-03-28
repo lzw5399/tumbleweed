@@ -116,7 +116,7 @@ func (engine *ProcessEngine) GetInstanceInitialState() (dto.StateArray, error) {
 	}
 
 	// 获取初始的states
-	return engine.GenStates([]dto.Node{nextNode})
+	return engine.GenNewStates([]dto.Node{nextNode})
 }
 
 // 流程处理
@@ -150,8 +150,8 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		return err
 	}
 
-	// 添加历史记录(这条只是保底的, 后续还会有其他的判断)
-	err = engine.CreateCirculationHistory(r.Remarks)
+	// 添加流转历史记录
+	err = engine.CreateHistory(r.Remarks, false)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		return nil
 	}
 
-	// 递归中, 当sourceNode为结束事件的情况下targetNode会为空
+	// 递归中, 当sourceNode为【结束事件】的情况下targetNode会为空
 	if engine.targetNode == nil {
 		return nil
 	}
@@ -174,7 +174,7 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		if deepLevel > 1 {
 			break
 		}
-		newStates, err := engine.GenStates([]dto.Node{*engine.targetNode})
+		newStates, err := engine.MergeStates(engine.sourceNode.Id, []dto.Node{*engine.targetNode})
 		if err != nil {
 			return err
 		}
@@ -184,20 +184,20 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		}
 
 	case constant.End:
-		// 只有第一次进来，才需要跳转
-		// 非第一次的递归记一条新的日志就退出
-		if deepLevel > 1 {
-			engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
-			return engine.handleInternal(r, deepLevel+1)
+		// 只有第一次进来，才需要Circulation跳转
+		// 非第一次的递归记一条结束的日志就退出
+		if deepLevel == 1 {
+			newStates, err := engine.MergeStates(engine.sourceNode.Id, []dto.Node{*engine.targetNode})
+			if err != nil {
+				return err
+			}
+			err = engine.Circulation(newStates)
+			if err != nil {
+				return err
+			}
 		}
-		newStates, err := engine.GenStates([]dto.Node{*engine.targetNode})
-		if err != nil {
-			return err
-		}
-		err = engine.Circulation(newStates)
-		if err != nil {
-			return err
-		}
+		engine.SetCurrentNodeEdgeInfo(engine.targetNode, nil, nil)
+		return engine.handleInternal(r, deepLevel+1)
 
 	case constant.ExclusiveGateway:
 		err := engine.ProcessingExclusiveGateway(*engine.targetNode, r)
@@ -209,13 +209,20 @@ func (engine *ProcessEngine) handleInternal(r *request.HandleInstancesRequest, d
 		return engine.handleInternal(r, deepLevel+1)
 
 	case constant.ParallelGateway:
-		err := engine.ProcessParallelGateway()
+		relationInfos, err := engine.ProcessParallelGateway()
 		if err != nil {
 			return err
 		}
 
 		// 递归处理
-		return engine.handleInternal(r, deepLevel+1)
+		for _, info := range relationInfos {
+			engine.SetCurrentNodeEdgeInfo(&info.SourceNode, &info.LinkedEdge, &info.TargetNode)
+			err = engine.handleInternal(r, deepLevel+1)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 
 	default:
 		return fmt.Errorf("目前的下一步节点类型：%v，暂不支持", engine.targetNode.Clazz)
@@ -285,6 +292,28 @@ func (engine *ProcessEngine) GetNode(nodeId string) (dto.Node, error) {
 	return dto.Node{}, fmt.Errorf("当前nodeId为:%s的node不存在", nodeId)
 }
 
+// GetNodes(edges, "source") 获取edges中source属性指向的node的集合
+// GetNodes(edges, "target") 获取edges中target属性指向的node的集合
+func (engine *ProcessEngine) GetNodesByEdges(edges []dto.Edge, edgeType string) []dto.Node {
+	nodes := make([]dto.Node, 0)
+	for _, node := range engine.DefinitionStructure.Nodes {
+		for _, edge := range edges {
+			switch edgeType {
+			case "source":
+				if edge.Source == node.Id {
+					nodes = append(nodes, node)
+				}
+			case "target":
+				if edge.Target == node.Id {
+					nodes = append(nodes, node)
+				}
+			}
+		}
+	}
+
+	return nodes
+}
+
 // 获取edge上的targetNode
 func (engine *ProcessEngine) GetTargetNodeByEdgeId(edgeId string) (dto.Node, error) {
 	edge, err := engine.GetEdge(edgeId)
@@ -295,8 +324,8 @@ func (engine *ProcessEngine) GetTargetNodeByEdgeId(edgeId string) (dto.Node, err
 	return engine.GetNode(edge.Target)
 }
 
-// 获取数据库process_instance表存储的state字段的对象
-func (engine *ProcessEngine) GenStates(nodes []dto.Node) (dto.StateArray, error) {
+// 获取全新的 数据库process_instance表存储的state字段的对象
+func (engine *ProcessEngine) GenNewStates(nodes []dto.Node) (dto.StateArray, error) {
 	states := dto.StateArray{}
 	for _, node := range nodes {
 		state := dto.State{
@@ -343,6 +372,30 @@ func (engine *ProcessEngine) GenStates(nodes []dto.Node) (dto.StateArray, error)
 	return states, nil
 }
 
+// 合并state字段，返回合并之后的
+func (engine *ProcessEngine) MergeStates(removeNodeId string, newNodes []dto.Node) (dto.StateArray, error) {
+	finalMergedStates := make(dto.StateArray, 0)
+
+	// 原来的state排除掉removeNodeId
+	for _, state := range engine.ProcessInstance.State {
+		if state.Id == removeNodeId {
+			continue
+		}
+		finalMergedStates = append(finalMergedStates, state)
+	}
+
+	// 新的node生成state
+	newStates, err := engine.GenNewStates(newNodes)
+	if err != nil {
+		return nil, err
+	}
+
+	// 合并
+	finalMergedStates = append(finalMergedStates, newStates...)
+
+	return finalMergedStates, nil
+}
+
 // 通过角色id获取用户id
 func (engine *ProcessEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
 	var roleUsersList []model.RoleUsers
@@ -377,7 +430,7 @@ func (engine *ProcessEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
 }
 
 // 合并更新变量
-func (engine *ProcessEngine) UpdateVariables(newVariables []model.InstanceVariable) {
+func (engine *ProcessEngine) MergeVariables(newVariables []model.InstanceVariable) {
 	// 反序列化出来
 	originVariables := util.UnmarshalToInstanceVariables(engine.ProcessInstance.Variables)
 
