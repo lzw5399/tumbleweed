@@ -20,3 +20,38 @@ func SliceDiff(a, b []int) (diff []int) {
 	}
 	return
 }
+
+func SliceAnyString(s []string, it string) bool {
+	for _, item := range s {
+		if item == it {
+			return true
+		}
+	}
+
+	return false
+}
+
+func SliceAnyInt(s []int, it int) bool {
+	for _, item := range s {
+		if item == it {
+			return true
+		}
+	}
+
+	return false
+}
+
+func SliceMinMax(array []int) (min int, max int) {
+	max = array[0]
+	min = array[0]
+
+	for _, value := range array {
+		if max < value {
+			max = value
+		}
+		if min > value {
+			min = value
+		}
+	}
+	return
+}

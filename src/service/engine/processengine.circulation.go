@@ -15,45 +15,6 @@ import (
 	"workflow/src/util"
 )
 
-// 一般流转处理，兼顾了会签的判断
-func (engine *ProcessEngine) CommonProcessing(newStates dto.StateArray) error {
-	// 如果是拒绝的流程直接跳转
-	if engine.linkEdge.FlowProperties == "0" {
-		return engine.Circulation(newStates)
-	}
-
-	// TODO 暂不支持并行网关，这边先判断0
-	state := engine.ProcessInstance.State[0]
-	// 不是会签直接跳
-	if !state.IsCounterSign {
-		return engine.Circulation(newStates)
-	}
-
-	// 判断当前用户是否会签的最后一个人
-	isLastPerson, err := engine.IsCounterSignLastProcessor()
-	if err != nil {
-		return err
-	}
-	if isLastPerson {
-		return engine.Circulation(newStates)
-	}
-
-	// 不是会签的最后一个人, 则更新
-	toUpdate := map[string]interface{}{
-		"state":          engine.ProcessInstance.State,
-		"update_time":    time.Now().Local(),
-		"update_by":      engine.currentUserId,
-		"related_person": engine.ProcessInstance.RelatedPerson,
-		"variables":      engine.ProcessInstance.Variables,
-	}
-
-	err = engine.tx.Model(&engine.ProcessInstance).
-		Updates(toUpdate).
-		Error
-
-	return err
-}
-
 // processInstance流转处理
 func (engine *ProcessEngine) Circulation(newStates dto.StateArray) error {
 	toUpdate := map[string]interface{}{
@@ -109,9 +70,13 @@ func (engine *ProcessEngine) Deny(r *request.DenyInstanceRequest) error {
 	}
 	duration := util.FmtDuration(time.Since(lastCirculation.CreateTime))
 
+	// 获取当前的state
+	state, err := engine.GetStateByNodeId(r.NodeId)
+	if err != nil {
+		return err
+	}
+
 	// 创建新的一条流转历史
-	// todo 这里先判断[0]
-	state := engine.ProcessInstance.State[0]
 	cirHistory := model.CirculationHistory{
 		AuditableBase: model.AuditableBase{
 			CreateBy: engine.currentUserId,
@@ -153,4 +118,18 @@ func (engine *ProcessEngine) UpdateRelatedPerson() {
 	if !exist {
 		engine.ProcessInstance.RelatedPerson = append(engine.ProcessInstance.RelatedPerson, int64(engine.currentUserId))
 	}
+}
+
+// 通过当前用户id获取当前审批的是哪个state的
+func (engine *ProcessEngine) GetStatesByCurrentUserId() dto.StateArray {
+	states := dto.StateArray{}
+	currentUserId := int(engine.currentUserId)
+	for _, state := range engine.ProcessInstance.State {
+		// 审核者中有当前角色，但是审核完成中没有
+		if util.SliceAnyInt(state.Processor, currentUserId) && !util.SliceAnyInt(state.CompletedProcessor, currentUserId) {
+			states = append(states, state)
+		}
+	}
+
+	return states
 }

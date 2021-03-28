@@ -15,13 +15,16 @@ import (
 
 // 验证入参合法性
 func (engine *ProcessEngine) ValidateHandleRequest(r *request.HandleInstancesRequest) error {
-	currentEdge, err := engine.GetEdge(r.EdgeID)
+	currentEdge, err := engine.GetEdge(r.EdgeId)
+	if err != nil {
+		return util.BadRequest.New(err)
+	}
+
+	state, err := engine.GetStateByEdgeId(currentEdge)
 	if err != nil {
 		return err
 	}
 
-	// todo 这里先判断[0]
-	state := engine.ProcessInstance.State[0]
 	if currentEdge.Source != state.Id {
 		return util.BadRequest.New("当前审批不合法, 请检查")
 	}
@@ -40,9 +43,11 @@ func (engine *ProcessEngine) ValidateHandleRequest(r *request.HandleInstancesReq
 }
 
 // 验证否决请求的入参
-func (engine *ProcessEngine) ValidateDenyRequest() error {
-	// todo 这里先判断[0]
-	state := engine.ProcessInstance.State[0]
+func (engine *ProcessEngine) ValidateDenyRequest(r *request.DenyInstanceRequest) error {
+	state, err := engine.GetStateByNodeId(r.NodeId)
+	if err != nil {
+		return util.BadRequest.New(err)
+	}
 
 	// 判断当前流程实例状态是否已结束或者被否决
 	if engine.ProcessInstance.IsEnd {

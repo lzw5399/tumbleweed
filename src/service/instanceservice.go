@@ -168,19 +168,17 @@ func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, cu
 // 处理/审批ProcessInstance
 func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		processEngine *engine.ProcessEngine
-		err           error
-		tx            = global.BankDb.Begin() // 开启事务
+		tx = global.BankDb.Begin() // 开启事务
 	)
 
 	// 验证变量是否符合要求
-	err = validateVariables(r.Variables)
+	err := validateVariables(r.Variables)
 	if err != nil {
 		return nil, err
 	}
 
 	// 流程实例引擎
-	processEngine, err = engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	processEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -208,19 +206,17 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 // 否决流程
 func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		instanceEngine *engine.ProcessEngine
-		err            error
-		tx             = global.BankDb.Begin() // 开启事务
+		tx = global.BankDb.Begin() // 开启事务
 	)
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	instanceEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
 
 	// 验证当前用户是否有权限处理
-	err = instanceEngine.ValidateDenyRequest()
+	err = instanceEngine.ValidateDenyRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -263,13 +259,15 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		return nil, errors.New("当前流程对应的模板为空")
 	}
 
-	// 3. 获取实例的当前nodeId
-	// todo 暂不支持并行网关，所以先用0
-	currentNodeId := instance.State[0].Id
+	// 3. 获取实例的当前nodeId列表
+	currentNodeIds := make([]string, len(instance.State))
+	for i, state := range instance.State {
+		currentNodeIds[i] = state.Id
+	}
 
 	// 4. 获取所有的显示节点
 	shownNodes := make([]dto.Node, 0)
-	currentNodeSortNumber := 0 // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
+	currentNodeSortRange := make([]int, 0) // 当前节点的顺序区间, 在这个区间内的顺序都当作当前节点
 	initialNodeId := ""
 	for _, node := range definition.Structure.Nodes {
 		// 隐藏节点就跳过
@@ -277,8 +275,8 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 			continue
 		}
 		// 获取当前节点的顺序
-		if node.Id == currentNodeId {
-			currentNodeSortNumber = util.StringToInt(node.Sort)
+		if util.SliceAnyString(currentNodeIds, node.Id) {
+			currentNodeSortRange = append(currentNodeSortRange, util.StringToInt(node.Sort))
 		}
 		// 找出开始节点的id
 		if node.Clazz == constant.START {
@@ -302,7 +300,12 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		}
 	}
 
-	// 7. 最后将shownNodes映射成model返回
+	// 7. 获取当前节点的排序
+	// 由于当前节点可能有多个，排序也相应的有多个，多以会有一个当前节点排序的最大值和最小值
+	// 这个范围内圈起来的都被当作当前节点
+	currentNodeMinSort, currentNodeMaxSort := util.SliceMinMax(currentNodeSortRange)
+
+	// 8. 最后将shownNodes映射成model返回
 	var trainNodes []response.ProcessChainNode
 	From(shownNodes).Select(func(i interface{}) interface{} {
 		node := i.(dto.Node)
@@ -310,9 +313,9 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 
 		var status constant.ChainNodeStatus
 		switch {
-		case currentNodeSort < currentNodeSortNumber:
+		case currentNodeSort < currentNodeMinSort:
 			status = 1 // 已处理
-		case currentNodeSort > currentNodeSortNumber:
+		case currentNodeSort > currentNodeMaxSort:
 			status = 3 // 未处理的后续节点
 		default:
 			// 如果是结束节点，则不显示为当前节点，显示为已处理

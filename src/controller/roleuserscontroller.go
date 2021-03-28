@@ -26,7 +26,7 @@ var (
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/role-users/_batch [POST]
+// @Router /api/wf/role-users/_batch [POST]
 func BatchSyncRoleUsers(c echo.Context) error {
 	var (
 		r   request.BatchSyncRoleUsersRequest
@@ -54,7 +54,7 @@ func BatchSyncRoleUsers(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/role-users [POST]
+// @Router /api/wf/role-users [POST]
 func SyncRoleUsers(c echo.Context) error {
 	var (
 		r   request.SyncRoleUsersRequest

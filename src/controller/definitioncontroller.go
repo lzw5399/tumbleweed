@@ -27,7 +27,7 @@ var (
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [POST]
+// @Router /api/wf/process-definitions [POST]
 func CreateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -64,7 +64,7 @@ func CreateProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [PUT]
+// @Router /api/wf/process-definitions [PUT]
 func UpdateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -99,7 +99,7 @@ func UpdateProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions/{id} [DELETE]
+// @Router /api/wf/process-definitions/{id} [DELETE]
 func DeleteProcessDefinition(c echo.Context) error {
 	definitionId := c.Param("id")
 	if definitionId == "" {
@@ -122,7 +122,7 @@ func DeleteProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions/{id} [GET]
+// @Router /api/wf/process-definitions/{id} [GET]
 func GetProcessDefinition(c echo.Context) error {
 	definitionId := c.Param("id")
 	if definitionId == "" {
@@ -146,7 +146,7 @@ func GetProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [GET]
+// @Router /api/wf/process-definitions [GET]
 func ListProcessDefinition(c echo.Context) error {
 	// 从queryString获取分页参数
 	var r request.DefinitionListRequest
