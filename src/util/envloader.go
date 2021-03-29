@@ -25,41 +25,46 @@ func LoadEnv(val interface{}) {
 		return
 	}
 
-	loadEnvToStruct(v, []string{})
+	loadEnvToStruct(v, []string{}, 1)
 }
 
-func loadEnvToStruct(v reflect.Value, dependencies []string) {
+func loadEnvToStruct(v reflect.Value, dependencies []string, deepLevel int) {
 	num := v.NumField()
 	for i := 0; i < num; i++ {
+		if deepLevel == 1 {
+			dependencies = []string{}
+		}
 		f := v.Field(i)
 		fieldName := v.Type().Field(i).Name
 
-		envValue := os.Getenv(genDependenciesString(dependencies, fieldName))
+		envKey := genDependenciesString(dependencies, fieldName)
+		envValue := os.Getenv(envKey)
 
-		if envValue == "" || !f.CanSet() {
+		if f.Kind() != reflect.Struct && (envValue == "" || !f.CanSet()) {
 			continue
 		}
-
-		log.Printf("当前环境变量: %s, 已加载", envValue)
 
 		switch f.Kind() {
 		case reflect.String:
 			f.SetString(envValue)
 		case reflect.Bool:
 			if value, err := strconv.ParseBool(envValue); err == nil {
+				log.Printf("【环境变量配置加载】当前envKey为: %s 的环境变量已替换", envKey)
 				f.SetBool(value)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if value, err := strconv.Atoi(envValue); err == nil {
+				log.Printf("【环境变量配置加载】当前envKey为: %s 的环境变量已替换", envKey)
 				f.SetInt(int64(value))
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			if value, err := strconv.Atoi(envValue); err == nil {
+				log.Printf("【环境变量配置加载】当前envKey为: %s 的环境变量已替换", envKey)
 				f.SetUint(uint64(value))
 			}
 		case reflect.Struct:
 			dependencies = append(dependencies, fieldName)
-			loadEnvToStruct(f, dependencies)
+			loadEnvToStruct(f, dependencies, deepLevel+1)
 		}
 	}
 }
