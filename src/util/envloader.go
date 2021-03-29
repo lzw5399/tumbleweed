@@ -7,6 +7,7 @@ package util
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -38,6 +39,8 @@ func loadEnvToStruct(v reflect.Value, dependencies []string) {
 		if envValue == "" || !f.CanSet() {
 			continue
 		}
+
+		log.Printf("当前环境变量: %s, 已加载", envValue)
 
 		switch f.Kind() {
 		case reflect.String:
