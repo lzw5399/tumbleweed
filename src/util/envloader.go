@@ -41,6 +41,7 @@ func loadEnvToStruct(v reflect.Value, dependencies []string, deepLevel int) {
 		envValue := os.Getenv(envKey)
 
 		if f.Kind() != reflect.Struct && (envValue == "" || !f.CanSet()) {
+			log.Printf("【环境变量配置加载】当前envKey为: %s 的环境变量为空, 将跳过", envKey)
 			continue
 		}
 
@@ -49,7 +50,7 @@ func loadEnvToStruct(v reflect.Value, dependencies []string, deepLevel int) {
 			f.SetString(envValue)
 		case reflect.Bool:
 			if value, err := strconv.ParseBool(envValue); err == nil {
-				log.Printf("【环境变量配置加载】当前envKey为: %s 的环境变量已替换", envKey)
+				log.Printf("【环境变量配置加载】当前envKey为: %s 的环境变量已成功替换", envKey)
 				f.SetBool(value)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
