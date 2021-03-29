@@ -43,3 +43,12 @@ func IsInteger(f float64) bool {
 
 	return f == f2
 }
+
+func ParseToIntArray(arr []interface{}) []int {
+	intArr := make([]int, len(arr))
+	for index, item := range arr {
+		intArr[index] = int(item.(float64))
+	}
+
+	return intArr
+}

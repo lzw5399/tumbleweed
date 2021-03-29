@@ -6,7 +6,6 @@
 package config
 
 type Config struct {
-	Log Log `yaml:"log"`
 	App App `yaml:"app"`
 	Db  Db  `yaml:"db"`
 }
@@ -24,9 +23,4 @@ type Db struct {
 	Password    string `yaml:"password"`
 	LogMode     bool   `yaml:"log_mode"`
 	AutoMigrate bool   `yaml:"auto_migrate"`
-}
-
-type Log struct {
-	Prefix string `yaml:"prefix"`
-	Stdout string `yaml:"stdout"`
 }

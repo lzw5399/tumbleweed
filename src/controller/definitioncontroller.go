@@ -6,11 +6,9 @@
 package controller
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 
+	"workflow/src/global"
 	"workflow/src/global/response"
 	"workflow/src/model/request"
 	"workflow/src/service"
@@ -29,7 +27,7 @@ var (
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [POST]
+// @Router /api/wf/process-definitions [POST]
 func CreateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -44,15 +42,15 @@ func CreateProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err = definitionService.Validate(&r, 0, tenantId)
 	if err != nil {
-		return response.BadRequestWithMessage(c, err)
+		return response.Failed(c, err)
 	}
 
 	// 创建
 	currentUserId := util.GetCurrentUserId(c)
 	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
-		log.Printf("CreateProcess错误，原因: %s", err.Error())
-		return response.Failed(c, http.StatusInternalServerError)
+		global.BankLogger.Error("CreateProcess错误", err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, processDefinition)
@@ -66,7 +64,7 @@ func CreateProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [PUT]
+// @Router /api/wf/process-definitions [PUT]
 func UpdateProcessDefinition(c echo.Context) error {
 	var (
 		r   request.ProcessDefinitionRequest
@@ -81,14 +79,14 @@ func UpdateProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err = definitionService.Validate(&r, r.Id, tenantId)
 	if err != nil {
-		return response.BadRequestWithMessage(c, err)
+		return response.Failed(c, err)
 	}
 
 	currentUserId := util.GetCurrentUserId(c)
 	err = definitionService.UpdateDefinition(&r, currentUserId, tenantId)
 	if err != nil {
-		log.Printf("UpdateProcessDefinition错误，原因: %s", err.Error())
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+		global.BankLogger.Error("UpdateProcessDefinition错误", err)
+		return response.Failed(c, err)
 	}
 
 	return response.Ok(c)
@@ -101,7 +99,7 @@ func UpdateProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions/{id} [DELETE]
+// @Router /api/wf/process-definitions/{id} [DELETE]
 func DeleteProcessDefinition(c echo.Context) error {
 	definitionId := c.Param("id")
 	if definitionId == "" {
@@ -111,7 +109,7 @@ func DeleteProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	err := definitionService.DeleteDefinition(util.StringToUint(definitionId), tenantId)
 	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
+		return response.Failed(c, err)
 	}
 
 	return response.Ok(c)
@@ -124,7 +122,7 @@ func DeleteProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions/{id} [GET]
+// @Router /api/wf/process-definitions/{id} [GET]
 func GetProcessDefinition(c echo.Context) error {
 	definitionId := c.Param("id")
 	if definitionId == "" {
@@ -134,7 +132,7 @@ func GetProcessDefinition(c echo.Context) error {
 	tenantId := util.GetCurrentTenantId(c)
 	definition, err := definitionService.GetDefinition(util.StringToUint(definitionId), tenantId)
 	if err != nil {
-		return response.Failed(c, http.StatusNotFound)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, definition)
@@ -148,18 +146,18 @@ func GetProcessDefinition(c echo.Context) error {
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
-// @Router /api/process-definitions [GET]
+// @Router /api/wf/process-definitions [GET]
 func ListProcessDefinition(c echo.Context) error {
 	// 从queryString获取分页参数
 	var r request.DefinitionListRequest
 	if err := c.Bind(&r); err != nil {
-		return response.Failed(c, http.StatusBadRequest)
+		return response.BadRequest(c)
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
 	instances, err := definitionService.List(&r, util.GetCurrentUserId(c), tenantId)
 	if err != nil {
-		return response.FailWithMsg(c, http.StatusInternalServerError, err)
+		return response.Failed(c, err)
 	}
 
 	return response.OkWithData(c, instances)

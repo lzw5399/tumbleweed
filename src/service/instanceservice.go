@@ -6,7 +6,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -16,6 +15,7 @@ import (
 	"workflow/src/global/constant"
 	"workflow/src/global/shared"
 	"workflow/src/model"
+	"workflow/src/model/dto"
 	"workflow/src/model/request"
 	"workflow/src/model/response"
 	"workflow/src/service/engine"
@@ -41,16 +41,14 @@ func NewInstanceService() *instanceService {
 // 创建实例
 func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		currentInstanceState []map[string]interface{} // 变量值
-		err                  error
-		processDefinition    model.ProcessDefinition // 流程模板
-		tx                   = global.BankDb.Begin() // 开启事务
+		processDefinition model.ProcessDefinition // 流程模板
+		tx                = global.BankDb.Begin() // 开启事务
 	)
 
 	// 检查变量是否合法
-	err = validateVariables(r.Variables)
+	err := validateVariables(r.Variables)
 	if err != nil {
-		return nil, err
+		return nil, util.BadRequest.New(err)
 	}
 
 	// 查询对应的流程模板
@@ -64,31 +62,25 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// 初始化流程引擎
-	instanceEngine, err := engine.NewInstanceEngine(processDefinition, r.ToProcessInstance(currentUserId, tenantId), currentUserId, tenantId, tx)
+	instanceEngine, err := engine.NewProcessEngine(processDefinition, r.ToProcessInstance(currentUserId, tenantId), currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
 
 	// 将初始状态赋值给当前的流程实例
-	if currentInstanceState, err = instanceEngine.GetInstanceInitialState(); err != nil {
+	if currentInstanceState, err := instanceEngine.GetInstanceInitialState(); err != nil {
 		return nil, err
 	} else {
-		instanceEngine.ProcessInstance.State = util.MarshalToDbJson(currentInstanceState)
+		instanceEngine.ProcessInstance.State = currentInstanceState
 	}
 
 	// TODO 这里判断下一步是排他网关等情况
 
-	// 将最新的“变量/状态信息”赋值给processInstance
-	instanceEngine.ProcessInstance.State, err = json.Marshal(currentInstanceState)
-	if err != nil {
-		return nil, err
-	}
-
-	// processInstance某些字段更新
-	instanceEngine.ProcessInstance.RelatedPerson = append(instanceEngine.ProcessInstance.RelatedPerson, int64(currentUserId))
+	// 更新instance的关联人
+	instanceEngine.UpdateRelatedPerson()
 
 	// 创建
-	err = instanceEngine.CreateProcessInstance(currentInstanceState)
+	err = instanceEngine.CreateProcessInstance()
 	if err != nil {
 		tx.Rollback()
 	} else {
@@ -115,7 +107,7 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 		return i.(int64) == int64(currentUserId)
 	})
 	if !exist {
-		return nil, errors.New("记录不存在")
+		return nil, util.NotFound.New("记录不存在")
 	}
 
 	resp := response.ProcessInstanceResponse{
@@ -176,59 +168,55 @@ func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, cu
 // 处理/审批ProcessInstance
 func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		instanceEngine *engine.InstanceEngine
-		err            error
-		tx             = global.BankDb.Begin() // 开启事务
+		tx = global.BankDb.Begin() // 开启事务
 	)
 
 	// 验证变量是否符合要求
-	err = validateVariables(r.Variables)
+	err := validateVariables(r.Variables)
 	if err != nil {
 		return nil, err
 	}
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	processEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
 
 	// 验证合法性(1.edgeId是否合法 2.当前用户是否有权限处理)
-	err = instanceEngine.ValidateHandleRequest(r)
+	err = processEngine.ValidateHandleRequest(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// 合并最新的变量
-	instanceEngine.UpdateVariables(r.Variables)
+	processEngine.MergeVariables(r.Variables)
 
 	// 处理操作, 判断这里的原因是因为上面都不会进行数据库改动操作
-	err = instanceEngine.Handle(r)
+	err = processEngine.Handle(r)
 	if err != nil {
 		tx.Rollback()
 	} else {
 		tx.Commit()
 	}
 
-	return &instanceEngine.ProcessInstance, err
+	return &processEngine.ProcessInstance, err
 }
 
 // 否决流程
 func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
 	var (
-		instanceEngine *engine.InstanceEngine
-		err            error
-		tx             = global.BankDb.Begin() // 开启事务
+		tx = global.BankDb.Begin() // 开启事务
 	)
 
 	// 流程实例引擎
-	instanceEngine, err = engine.NewInstanceEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	instanceEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
 
 	// 验证当前用户是否有权限处理
-	err = instanceEngine.ValidateDenyRequest()
+	err = instanceEngine.ValidateDenyRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -271,74 +259,67 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		return nil, errors.New("当前流程对应的模板为空")
 	}
 
-	// 3. 获取模板结构
-	var definitionStructure engine.DefinitionStructure
-	err = json.Unmarshal(definition.Structure, &definitionStructure)
-	if err != nil {
-		return nil, errors.New("流程模板的结构不合法，请检查")
+	// 3. 获取实例的当前nodeId列表
+	currentNodeIds := make([]string, len(instance.State))
+	for i, state := range instance.State {
+		currentNodeIds[i] = state.Id
 	}
 
-	// 4. 获取实例的当前nodeId
-	var currentInstanceState []map[string]interface{}
-	err = json.Unmarshal(instance.State, &currentInstanceState)
-	if err != nil {
-		return nil, errors.New("当前流程实例的状态不合法, 请检查")
-	}
-	// todo 暂不支持并行网关，所以先用0
-	currentNodeId := currentInstanceState[0]["id"].(string)
-
-	// 5. 获取所有的显示节点
-	shownNodes := make([]map[string]interface{}, 0)
-	currentNodeSortNumber := 0 // 当前节点的顺序, 为了防止当前节点被隐藏的情况，抽出来
+	// 4. 获取所有的显示节点
+	shownNodes := make([]dto.Node, 0)
+	currentNodeSortRange := make([]int, 0) // 当前节点的顺序区间, 在这个区间内的顺序都当作当前节点
 	initialNodeId := ""
-	for _, node := range definitionStructure["nodes"] {
+	for _, node := range definition.Structure.Nodes {
 		// 隐藏节点就跳过
-		if node["isHideNode"] != nil && node["isHideNode"].(bool) == true {
+		if node.IsHideNode {
 			continue
 		}
 		// 获取当前节点的顺序
-		if node["id"].(string) == currentNodeId {
-			currentNodeSortNumber = util.StringToInt(node["sort"].(string))
+		if util.SliceAnyString(currentNodeIds, node.Id) {
+			currentNodeSortRange = append(currentNodeSortRange, util.StringToInt(node.Sort))
 		}
 		// 找出开始节点的id
-		if node["clazz"].(string) == constant.START {
-			initialNodeId = node["id"].(string)
+		if node.Clazz == constant.START {
+			initialNodeId = node.Id
 		}
+
 		shownNodes = append(shownNodes, node)
 	}
 
-	// 6. 遍历出可能的流程链路
-	possibleTrainNodesList := make([][]string, 0, util.Pow(len(definitionStructure["nodes"]), 2))
-	getPossibleTrainNode(definitionStructure, initialNodeId, []string{}, &possibleTrainNodesList)
+	// 5. 遍历出可能的流程链路
+	possibleTrainNodesList := make([][]string, 0, util.Pow(len(definition.Structure.Nodes), 2))
+	getPossibleTrainNode(definition.Structure, initialNodeId, []string{}, &possibleTrainNodesList)
 
-	// 7. 遍历获取当前显示的节点是否必须显示的
+	// 6. 遍历获取当前显示的节点是否必须显示的
 	// 具体实现方法是遍历possibleTrainNodesList中每一个变量，然后看当前变量的hitCount是否等于len(possibleTrainNodesList)
 	// 等于的话，说明在数组每个元素里面都出现了, 那么肯定是必须的
-	hitCount := make(map[string]int, len(definitionStructure["nodes"]))
+	hitCount := make(map[string]int, len(definition.Structure.Nodes))
 	for _, possibleTrainNodes := range possibleTrainNodesList {
 		for _, trainNode := range possibleTrainNodes {
-			hitCount[trainNode] = hitCount[trainNode] + 1
+			hitCount[trainNode] += 1
 		}
 	}
-	for _, shownNode := range shownNodes {
-		shownNode["obligatory"] = hitCount[shownNode["id"].(string)] == len(possibleTrainNodesList)
-	}
+
+	// 7. 获取当前节点的排序
+	// 由于当前节点可能有多个，排序也相应的有多个，多以会有一个当前节点排序的最大值和最小值
+	// 这个范围内圈起来的都被当作当前节点
+	currentNodeMinSort, currentNodeMaxSort := util.SliceMinMax(currentNodeSortRange)
 
 	// 8. 最后将shownNodes映射成model返回
 	var trainNodes []response.ProcessChainNode
 	From(shownNodes).Select(func(i interface{}) interface{} {
-		node := i.(map[string]interface{})
-		currentNodeSort := util.StringToInt(node["sort"].(string))
+		node := i.(dto.Node)
+		currentNodeSort := util.StringToInt(node.Sort)
 
 		var status constant.ChainNodeStatus
 		switch {
-		case currentNodeSort < currentNodeSortNumber:
+		case currentNodeSort < currentNodeMinSort:
 			status = 1 // 已处理
-		case currentNodeSort > currentNodeSortNumber:
+		case currentNodeSort > currentNodeMaxSort:
 			status = 3 // 未处理的后续节点
 		default:
 			// 如果是结束节点，则不显示为当前节点，显示为已处理
-			if node["clazz"].(string) == constant.End {
+			if node.Clazz == constant.End {
 				status = 1
 			} else { // 其他的等于情况显示为当前节点
 				status = 2 // 当前节点
@@ -346,7 +327,7 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		}
 
 		var nodeType int
-		switch node["clazz"].(string) {
+		switch node.Clazz {
 		case constant.START:
 			nodeType = 1
 		case constant.UserTask:
@@ -358,9 +339,9 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 		}
 
 		return response.ProcessChainNode{
-			Name:       node["label"].(string),
-			Id:         node["id"].(string),
-			Obligatory: node["obligatory"].(bool),
+			Name:       node.Label,
+			Id:         node.Id,
+			Obligatory: hitCount[node.Id] == len(possibleTrainNodesList),
 			Status:     status,
 			Sort:       currentNodeSort,
 			NodeType:   nodeType,
@@ -413,14 +394,14 @@ func validateVariables(variables []model.InstanceVariable) error {
 // currentNodes: 当前需要遍历的节点
 // dependencies: 依赖项
 // possibleTrainNodes: 最终返回的可能的流程链路
-func getPossibleTrainNode(definitionStructure engine.DefinitionStructure, currentNodeId string, dependencies []string, possibleTrainNodes *[][]string) {
+func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId string, dependencies []string, possibleTrainNodes *[][]string) {
 	targetNodeIds := make([]string, 0)
 	// 当前节点添加到依赖中
 	dependencies = append(dependencies, currentNodeId)
-	for _, edge := range definitionStructure["edges"] {
+	for _, edge := range definitionStructure.Edges {
 		// 找到edge的source是当前nodeId的edge
-		if edge["source"].(string) == currentNodeId {
-			targetNodeIds = append(targetNodeIds, edge["target"].(string))
+		if edge.Source == currentNodeId {
+			targetNodeIds = append(targetNodeIds, edge.Target)
 		}
 	}
 

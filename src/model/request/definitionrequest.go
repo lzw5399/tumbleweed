@@ -12,6 +12,7 @@ import (
 	"gorm.io/datatypes"
 
 	"workflow/src/model"
+	"workflow/src/model/dto"
 )
 
 type ProcessDefinitionRequest struct {
@@ -26,6 +27,9 @@ type ProcessDefinitionRequest struct {
 }
 
 func (p *ProcessDefinitionRequest) ProcessDefinition() model.ProcessDefinition {
+	var structure dto.Structure
+	_ = json.Unmarshal(p.Structure, &structure)
+
 	return model.ProcessDefinition{
 		AuditableBase: model.AuditableBase{
 			EntityBase: model.EntityBase{
@@ -35,7 +39,7 @@ func (p *ProcessDefinitionRequest) ProcessDefinition() model.ProcessDefinition {
 			UpdateTime: time.Now().Local(),
 		},
 		Name:        p.Name,
-		Structure:   datatypes.JSON(p.Structure),
+		Structure:   structure,
 		ClassifyId:  p.ClassifyId,
 		Task:        datatypes.JSON(p.Task),
 		Notice:      datatypes.JSON(p.Notice),

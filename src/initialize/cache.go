@@ -1,7 +1,7 @@
 /**
  * @Author: lzw5399
  * @Date: 2021/3/20 15:44
- * @Desc:
+ * @Desc: 初始化内存缓存 并 加载租户信息到缓存
  */
 package initialize
 
@@ -14,8 +14,7 @@ import (
 	"workflow/src/model"
 )
 
-// 初始化租户缓存
-func init() {
+func setupCache() {
 	c := cache.New(-1, -1)
 	global.BankCache = c
 

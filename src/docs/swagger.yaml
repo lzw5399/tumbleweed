@@ -20,6 +20,9 @@ definitions:
     type: object
   request.DenyInstanceRequest:
     properties:
+      nodeId:
+        description: 所在节点的id
+        type: string
       processInstanceId:
         description: 流程实例的id
         type: integer
@@ -105,7 +108,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /api/process-definitions:
+  /api/wf/process-definitions:
     get:
       consumes:
       - application/json
@@ -214,7 +217,7 @@ paths:
       summary: 更新流程模板
       tags:
       - process-definitions
-  /api/process-definitions/{id}:
+  /api/wf/process-definitions/{id}:
     delete:
       parameters:
       - description: request
@@ -269,7 +272,7 @@ paths:
       summary: 获取流程模板详情
       tags:
       - process-definitions
-  /api/process-instances:
+  /api/wf/process-instances:
     get:
       consumes:
       - application/json
@@ -348,7 +351,7 @@ paths:
       summary: 创建新的流程实例
       tags:
       - process-instances
-  /api/process-instances/_deny:
+  /api/wf/process-instances/_deny:
     post:
       consumes:
       - application/json
@@ -379,7 +382,7 @@ paths:
       summary: 否决流程流程
       tags:
       - process-instances
-  /api/process-instances/_handle:
+  /api/wf/process-instances/_handle:
     post:
       consumes:
       - application/json
@@ -410,7 +413,7 @@ paths:
       summary: 处理/审批一个流程
       tags:
       - process-instances
-  /api/process-instances/{id}:
+  /api/wf/process-instances/{id}:
     get:
       parameters:
       - description: request
@@ -442,7 +445,7 @@ paths:
       summary: 获取一个流程实例
       tags:
       - process-instances
-  /api/process-instances/{id}/train-nodes:
+  /api/wf/process-instances/{id}/train-nodes:
     get:
       parameters:
       - description: request
@@ -470,7 +473,7 @@ paths:
       summary: 获取流程链路
       tags:
       - process-instances
-  /api/role-users:
+  /api/wf/role-users:
     post:
       consumes:
       - application/json
@@ -501,7 +504,7 @@ paths:
       summary: 同步(创建或更新)角色用户映射关系
       tags:
       - role-users
-  /api/role-users/_batch:
+  /api/wf/role-users/_batch:
     post:
       consumes:
       - application/json
@@ -532,4 +535,30 @@ paths:
       summary: 批量同步(创建或更新)角色用户映射关系
       tags:
       - role-users
+  /health/alive:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      tags:
+      - health
+  /health/ready:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.HttpResponse'
+      tags:
+      - health
 swagger: "2.0"

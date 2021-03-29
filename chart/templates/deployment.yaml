@@ -46,7 +46,7 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
         livenessProbe:
           httpGet:
-            path: /api/health/alive
+            path: /health/alive
             port: {{ .Values.service.internalPort }}
           failureThreshold: 6
           initialDelaySeconds: 120
@@ -54,7 +54,7 @@ spec:
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: /api/health/ready
+            path: /health/ready
             port: {{ .Values.service.internalPort }}
           failureThreshold: 6
           initialDelaySeconds: 20

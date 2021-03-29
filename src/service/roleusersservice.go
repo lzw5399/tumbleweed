@@ -65,9 +65,9 @@ func (u *roleUsersService) BatchSyncRoleUsersAsync(r *request.BatchSyncRoleUsers
 		Create(&roleUsersList).
 		Error
 	if err != nil {
-		log.Printf("批量更新失败, 错误：%s", err.Error())
+		global.BankLogger.Error("批量更新用户角色关系失败", err)
 	}
-	log.Printf("批量更新角色用户对应关系成功，更新条数:%d\n", len(roleUsersList))
+	global.BankLogger.Infof("批量更新角色用户对应关系成功，更新条数:%d\n", len(roleUsersList))
 }
 
 // 同步外部系统的角色用户对应关系
@@ -79,7 +79,7 @@ func (u *roleUsersService) SyncRoleUsers(r *request.SyncRoleUsersRequest, tenant
 		Delete(model.RoleUsers{}).
 		Error
 	if err != nil {
-		log.Printf("同步失败, 错误：%s", err.Error())
+		global.BankLogger.Error("同步用户角色关系失败", err)
 		return err
 	}
 
@@ -89,9 +89,11 @@ func (u *roleUsersService) SyncRoleUsers(r *request.SyncRoleUsersRequest, tenant
 		Create(&roleUsers).
 		Error
 	if err != nil {
-		log.Printf("同步失败, 错误：%s", err.Error())
+		global.BankLogger.Error("同步用户角色关系失败", err)
 		return err
 	}
+
+	global.BankLogger.Info("同步用户角色关系成功", r)
 
 	return nil
 }

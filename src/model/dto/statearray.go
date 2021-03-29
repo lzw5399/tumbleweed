@@ -15,27 +15,14 @@ import (
 type StateArray []State
 
 type State struct {
-	Id                 string          `json:"id"`
-	Label              string          `json:"label"`
-	Processor          []int           `json:"processor"`          // 完整的处理人列表
-	CompletedProcessor []int           `json:"completedProcessor"` // 已处理的人
-	ProcessMethod      string          `json:"processMethod"`      // 处理方式(角色 用户等)
-	AssignValue        []int           `json:"assignValue"`        // 指定的处理者(用户的id或者角色的id)
-	AvailableEdges     []AvailableEdge `json:"availableEdges"`     // 可走的线路
-	IsCounterSign      bool            `json:"isCounterSign"`      // 是否是会签
-}
-
-type AvailableEdge struct {
-	ID             string `json:"id"`
-	Sort           string `json:"sort"`
-	Clazz          string `json:"clazz"`
-	Label          string `json:"label"`
-	Shape          string `json:"shape"`
-	Source         string `json:"source"`
-	Target         string `json:"target"`
-	SourceAnchor   int64  `json:"sourceAnchor"`
-	TargetAnchor   int64  `json:"targetAnchor"`
-	FlowProperties string `json:"flowProperties"`
+	Id                 string `json:"id"`
+	Label              string `json:"label"`
+	Processor          []int  `json:"processor"`          // 完整的处理人列表
+	CompletedProcessor []int  `json:"completedProcessor"` // 已处理的人
+	ProcessMethod      string `json:"processMethod"`      // 处理方式(角色 用户等)
+	AssignValue        []int  `json:"assignValue"`        // 指定的处理者(用户的id或者角色的id)
+	AvailableEdges     []Edge `json:"availableEdges"`     // 可走的线路
+	IsCounterSign      bool   `json:"isCounterSign"`      // 是否是会签
 }
 
 // 实现 sql.Scanner 接口，Scan 将 value 扫描至 StateArray
