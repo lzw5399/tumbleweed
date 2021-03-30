@@ -132,15 +132,15 @@ build:
 
 integrationtest:
   stage: integrationtest
-  image: docker-mirror.sh.synyi.com/docker:stable
-  variables:
-    DOCKER_DRIVER: overlay2
+  image: docker-mirror.sh.synyi.com/docker:stable-git
   services:
     - docker-mirror.sh.synyi.com/docker:18-dind
-  only:
-    - branches
+  variables:
+    DOCKER_DRIVER: overlay2
   script:
     - integrationtest
+  only:
+    - branches
 
 code_quality:
   stage: test
@@ -154,7 +154,7 @@ code_quality:
     - setup_docker
     - code_quality
   artifacts:
-    paths: [gl-code-quality-report.json]
+    paths: [ gl-code-quality-report.json ]
   except:
     variables:
       - $CODE_QUALITY_DISABLED
@@ -170,7 +170,7 @@ license_management:
     - setup_docker
     - license_management
   artifacts:
-    paths: [gl-license-management-report.json]
+    paths: [ gl-license-management-report.json ]
   except:
     variables:
       - $LICENSE_MANAGEMENT_DISABLED
@@ -210,7 +210,7 @@ sast:
     - setup_docker
     - sast
   artifacts:
-    paths: [gl-sast-report.json]
+    paths: [ gl-sast-report.json ]
   except:
     variables:
       - $SAST_DISABLED
@@ -227,7 +227,7 @@ dependency_scanning:
     - setup_docker
     - dependency_scanning
   artifacts:
-    paths: [gl-dependency-scanning-report.json]
+    paths: [ gl-dependency-scanning-report.json ]
   except:
     variables:
       - $DEPENDENCY_SCANNING_DISABLED
@@ -244,7 +244,7 @@ container_scanning:
     - setup_docker
     - container_scanning
   artifacts:
-    paths: [gl-container-scanning-report.json]
+    paths: [ gl-container-scanning-report.json ]
   except:
     variables:
       - $CONTAINER_SCANNING_DISABLED
@@ -258,7 +258,7 @@ dast:
   script:
     - dast
   artifacts:
-    paths: [gl-dast-report.json]
+    paths: [ gl-dast-report.json ]
   only:
     refs:
       - branches
@@ -302,7 +302,7 @@ review:
     url: http://$KUBE_NAMESPACE-$CI_COMMIT_REF_SLUG.$AUTO_DEVOPS_DOMAIN
     on_stop: stop_review
   artifacts:
-    paths: [environment_url.txt]
+    paths: [ environment_url.txt ]
   only:
     refs:
       - branches
@@ -408,7 +408,7 @@ canary:
     name: production
     url: http://$CI_PROJECT_PATH_SLUG.$AUTO_DEVOPS_DOMAIN
   artifacts:
-    paths: [environment_url.txt]
+    paths: [ environment_url.txt ]
 
 production:
   <<: *production_template
@@ -443,7 +443,7 @@ production_manual:
     - "curl -X POST -F token=$PACK_DEPLOY_TOKEN -F variables[version]=$CI_COMMIT_SHA -F variables[name]=$PROJECT_NAME -F variables[branch]=$CI_COMMIT_REF_SLUG -F ref=$PACK_TARGET_BRANCH http://git.sy/api/v4/projects/${PACK_PROJECT_ID}/trigger/pipeline"
   variables:
     GIT_STRATEGY: none
-  dependencies: []
+  dependencies: [ ]
 
 package:
   <<: *package_template
@@ -499,7 +499,7 @@ publish-aws:
     name: production
     url: http://$CI_PROJECT_PATH_SLUG.$AUTO_DEVOPS_DOMAIN
   artifacts:
-    paths: [environment_url.txt]
+    paths: [ environment_url.txt ]
 
 rollout 10%:
   <<: *rollout_template
