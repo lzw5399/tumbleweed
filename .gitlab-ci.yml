@@ -86,6 +86,7 @@ stages:
   - performance
   - cleanup
   - daily_commit
+  - integrationtest
 
 
 
@@ -129,6 +130,16 @@ build:
     - branches
 
 
+integrationtest:
+  stage: integrationtest
+  image: docker-mirror.sh.synyi.com/docker:stable
+  variables:
+    DOCKER_DRIVER: overlay2
+  allow_failure: true
+  services:
+    - docker-mirror.sh.synyi.com/docker:18-dind
+  script:
+    - integrationtest
 
 code_quality:
   stage: test
@@ -657,6 +668,17 @@ rollout 100%:
         echo "GitLab EE is required"
         ;;
     esac
+  }
+
+  function integrationtest() {
+    emm=$(curl -X GET "http://lin-zhiwen-bank-workflow-integration-test.sy/api/workflowtest/ensure-workflow" -H  "accept: */*")
+
+      if [[ $emm == *"失败的个数为:0"* ]] ;then
+      echo -e "\033[32m $emm \033[0m"
+      else
+      echo -e "\033[31m $emm \033[0m"
+      exit 1
+      fi
   }
 
   function dependency_scanning() {
