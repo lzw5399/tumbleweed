@@ -74,6 +74,7 @@ variables:
   DOCKER_API_VERSION: '1.39'
 stages:
   - build
+  - integrationtest
   - test
   - migrate
   - review
@@ -86,7 +87,6 @@ stages:
   - performance
   - cleanup
   - daily_commit
-  - integrationtest
 
 
 
@@ -135,9 +135,10 @@ integrationtest:
   image: docker-mirror.sh.synyi.com/docker:stable
   variables:
     DOCKER_DRIVER: overlay2
-  allow_failure: true
   services:
     - docker-mirror.sh.synyi.com/docker:18-dind
+  only:
+    - branches
   script:
     - integrationtest
 
