@@ -7,7 +7,7 @@ db:
   database: postgres
   username: postgres
   password: pwd
+  auto_migrate: false # 自动迁移
   max_idle_conn: 20 # 最多的空闲连接数，默认2
   max_open_conn: 50 # 最多的打开连接数，默认0(无限制)
   log_mode: true # false的话gorm只会输出错误日志，true会输出详细日志
-  auto_migrate: false # 自动迁移
