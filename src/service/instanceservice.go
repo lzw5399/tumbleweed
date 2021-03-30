@@ -400,7 +400,7 @@ func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId strin
 	dependencies = append(dependencies, currentNodeId)
 	for _, edge := range definitionStructure.Edges {
 		// 找到edge的source是当前nodeId的edge
-		if edge.Source == currentNodeId {
+		if edge.Source == currentNodeId && edge.FlowProperties != "0" {
 			targetNodeIds = append(targetNodeIds, edge.Target)
 		}
 	}
