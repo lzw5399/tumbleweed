@@ -131,7 +131,7 @@ build:
 
 
 integrationtest:
-  stage: integrationtest
+  stage: build
   image: docker-mirror.sh.synyi.com/docker:stable-git
   services:
     - docker-mirror.sh.synyi.com/docker:18-dind
