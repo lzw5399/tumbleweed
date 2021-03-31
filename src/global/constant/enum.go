@@ -38,3 +38,9 @@ const (
 	VariableString
 	VariableBool
 )
+
+// 流转历史的类型
+const (
+	HistoryTypeFull = iota + 1
+	HistoryTypeSimple
+)

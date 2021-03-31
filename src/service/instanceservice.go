@@ -145,7 +145,7 @@ func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, cu
 	case constant.I_All:
 		break
 	default:
-		return nil, errors.New("type不合法")
+		return nil, util.BadRequest.New("type不合法")
 	}
 
 	if r.Keyword != "" {

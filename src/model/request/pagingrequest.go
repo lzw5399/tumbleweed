@@ -15,11 +15,18 @@ type PagingRequest struct {
 type InstanceListRequest struct {
 	PagingRequest
 	Type    int    `json:"type,omitempty" form:"type" query:"type"`                    // 类别 1=我的待办 2=我创建的 3=和我相关的 4=所有
-	Keyword string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` //关键词
+	Keyword string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` // 关键词
 }
 
 type DefinitionListRequest struct {
 	PagingRequest
-	Keyword string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` //关键词
+	Keyword string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` // 关键词
 	Type    int    `json:"type,omitempty" form:"type" query:"type"`                    // 类别 1=我创建的  2=所有
+}
+
+type HistoryListRequest struct {
+	PagingRequest
+	Keyword           string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` // 关键词
+	Type              int    `json:"type,omitempty" form:"type" query:"type"`                    // 类别 1=完整日志  2=简洁日志
+	ProcessInstanceId int    `json:"id" path:"id" swaggerignore:"true"`                                               // 工作流实例id
 }

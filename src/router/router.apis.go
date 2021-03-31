@@ -32,6 +32,7 @@ func RegisterProcessInstance(r *echo.Group) {
 		instanceGroup.GET("", controller.ListProcessInstances)            // 获取列表
 		instanceGroup.POST("/_handle", controller.HandleProcessInstance)  // 流程审批
 		instanceGroup.POST("/_deny", controller.DenyProcessInstance)      // 流程否决
+		instanceGroup.GET("/:id/history ", controller.ListHistory)        // 获取流程链路
 		instanceGroup.GET("/:id/train-nodes", controller.GetProcessTrain) // 获取流程链路
 	}
 }
