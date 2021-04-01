@@ -64,6 +64,7 @@ func (engine *ProcessEngine) IsCounterSignLastProcessor() (bool, error) {
 
 			// 更新CompletedProcessor字段
 			engine.ProcessInstance.State[index].CompletedProcessor = append(engine.ProcessInstance.State[index].CompletedProcessor, int(engine.currentUserId))
+			engine.ProcessInstance.State[index].UnCompletedProcessor = engine.RemoveCurrentFromUnCompleted(engine.ProcessInstance.State[index].UnCompletedProcessor)
 			matched = true
 			break
 		}
@@ -92,4 +93,16 @@ func (engine *ProcessEngine) UpdateInstanceForCounterSign() error {
 		Error
 
 	return err
+}
+
+func (engine *ProcessEngine) RemoveCurrentFromUnCompleted(unCompletedProcessors []int) []int {
+	newArr := make([]int, len(unCompletedProcessors)-1)
+	for _, it := range unCompletedProcessors {
+		if it == int(engine.currentUserId) {
+			continue
+		}
+		newArr = append(newArr, it)
+	}
+
+	return newArr
 }

@@ -28,6 +28,6 @@ type ProcessInstance struct {
 
 type InstanceVariable struct {
 	Name  string      `json:"name"`  // 变量名
-	Type  int         `json:"type"`  // 变量类型 1=int 2=string 3=bool 4=float64
+	// Type  int         `json:"type"`  // 变量类型 1=int 2=string 3=bool 4=float64
 	Value interface{} `json:"value"` // 变量值
 }

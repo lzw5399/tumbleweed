@@ -348,9 +348,11 @@ func (engine *ProcessEngine) GenNewStates(nodes []dto.Node) (dto.StateArray, err
 					return nil, err
 				}
 				state.Processor = processors
+				state.UnCompletedProcessor = processors
 				break
 			case "person": // 审批者是person的话直接用原值
 				state.Processor = node.AssignValue
+				state.UnCompletedProcessor = node.AssignValue
 				break
 			default:
 				return nil, fmt.Errorf("不支持的处理人类型: %s", node.AssignType)
