@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	. "github.com/ahmetb/go-linq/v3"
+	"gorm.io/gorm"
 
 	"workflow/src/global"
 	"workflow/src/global/constant"
@@ -103,11 +104,23 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 	}
 
 	// 必须是相关的才能看到
-	exist := From(instance.RelatedPerson).AnyWith(func(i interface{}) bool {
-		return i.(int64) == int64(currentUserId)
-	})
+	exist := false
+	for _, state := range instance.State {
+		for _, processor := range state.Processor {
+			if processor == int(currentUserId) {
+				exist = true
+				break
+			}
+		}
+	}
 	if !exist {
-		return nil, util.NotFound.New("记录不存在")
+		exist = From(instance.RelatedPerson).AnyWith(func(i interface{}) bool {
+			return i.(int64) == int64(currentUserId)
+		})
+
+		if !exist {
+			return nil, util.NotFound.New("记录不存在")
+		}
 	}
 
 	resp := response.ProcessInstanceResponse{
@@ -129,18 +142,27 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 // 获取ProcessInstance列表
 func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, currentUserId uint, tenantId uint) (*response.PagingResponse, error) {
 	var instances []model.ProcessInstance
-	db := global.BankDb.Model(&model.ProcessInstance{}).Where("tenant_id = ?", tenantId)
+	var db *gorm.DB
+
+	switch r.Type {
+	case constant.I_MyToDo:
+		return getTodoInstances(r, currentUserId, tenantId)
+	default:
+		db = global.BankDb.Model(&model.ProcessInstance{}).
+			Where("tenant_id = ?", tenantId)
+	}
 
 	// 根据type的不同有不同的逻辑
 	switch r.Type {
 	case constant.I_MyToDo:
-		db = db.Joins("cross join jsonb_array_elements(state) as elem").Where(fmt.Sprintf("elem -> 'processor' @> '%v'", currentUserId))
+		//db = db.Joins("cross join jsonb_array_elements(state) as elem").Where(fmt.Sprintf("elem -> 'processor' @> '[%v]'", currentUserId))
 		break
 	case constant.I_ICreated:
 		db = db.Where("create_by=?", currentUserId)
 		break
 	case constant.I_IRelated:
-		db = db.Where(fmt.Sprintf("related_person @> '%v'", currentUserId))
+		db = db.Joins("cross join jsonb_array_elements(state) as elem").
+			Where(fmt.Sprintf("related_person @> Array[%d] or elem -> 'processor' @> '[%v]'", currentUserId, currentUserId))
 		break
 	case constant.I_All:
 		break
@@ -357,28 +379,6 @@ func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId 
 func validateVariables(variables []model.InstanceVariable) error {
 	checkedVariables := make(map[string]model.InstanceVariable, 0)
 	for _, v := range variables {
-		illegalValueError := fmt.Errorf("当前变量:%s 的类型对应的值不合法，请检查", v.Name)
-		// 检查类型
-		switch v.Type {
-		case constant.VariableNumber:
-			_, succeed := v.Value.(float64)
-			if !succeed {
-				return illegalValueError
-			}
-		case constant.VariableString:
-			_, succeed := v.Value.(string)
-			if !succeed {
-				return illegalValueError
-			}
-		case constant.VariableBool:
-			_, succeed := v.Value.(bool)
-			if !succeed {
-				return illegalValueError
-			}
-		default:
-			return fmt.Errorf("当前变量:%s 的类型不合法，请检查", v.Name)
-		}
-
 		// 检查是否重名
 		if _, present := checkedVariables[v.Name]; present {
 			return fmt.Errorf("当前变量名:%s 重复, 请检查", v.Name)
@@ -414,4 +414,55 @@ func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId strin
 			getPossibleTrainNode(definitionStructure, targetNodeId, dependencies, possibleTrainNodes)
 		}
 	}
+}
+
+func getTodoInstances(r *request.InstanceListRequest, currentUserId uint, tenantId uint) (*response.PagingResponse, error) {
+	countSql := fmt.Sprintf(`with base as (
+		select *,
+			jsonb_array_elements(state) as singleState
+			from wf.process_instance
+			where tenant_id = %d
+			AND is_end = false
+			AND is_denied = false
+			)
+			select count(1)
+				from base
+				where singleState -> 'processor' @> '[%d]'
+				and singleState -> 'unCompletedProcessor' @> '[%d]'`,
+		tenantId, currentUserId, currentUserId)
+	if r.Keyword != "" {
+		countSql += fmt.Sprintf(" AND title ~ '%s'", r.Keyword)
+	}
+	var c int64
+	err := global.BankDb.Raw(countSql).Scan(&c).Error
+	if err != nil {
+		return nil, err
+	}
+
+	sql := fmt.Sprintf(`with base as (
+		select *,
+			jsonb_array_elements(state) as singleState
+			from wf.process_instance
+			where tenant_id = %d
+			AND is_end = false
+			AND is_denied = false
+			)
+			select id, create_time, update_time, create_by, update_by, title, priority,
+				process_definition_id, classify_id, is_end, is_denied, state, related_person, tenant_id, variables
+				from base
+				where singleState -> 'processor' @> '[%d]'
+				and singleState -> 'unCompletedProcessor' @> '[%d]' `,
+		tenantId, currentUserId, currentUserId)
+	if r.Keyword != "" {
+		sql += fmt.Sprintf(" AND title ~ '%s'", r.Keyword)
+	}
+	sql = shared.ApplyRawPaging(sql, &r.PagingRequest)
+	var instances []model.ProcessInstance
+	err = global.BankDb.Raw(sql).Scan(&instances).Error
+
+	return &response.PagingResponse{
+		TotalCount:   c,
+		CurrentCount: int64(len(instances)),
+		Data:         &instances,
+	}, err
 }

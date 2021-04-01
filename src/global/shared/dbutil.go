@@ -7,7 +7,7 @@ package shared
 
 import (
 	"fmt"
-	
+
 	"workflow/src/model/request"
 
 	"gorm.io/gorm"
@@ -20,15 +20,41 @@ func ApplyPaging(db *gorm.DB, r *request.PagingRequest) *gorm.DB {
 		limit = -1
 	}
 
-	order := "asc"
-	if r.Order == "desc" {
+	order := "desc"
+	if r.Order == "asc" {
 		order = r.Order
 	}
 
 	sort := r.Sort
 	if sort == "" {
-		sort = "id"
+		sort = "update_time"
 	}
 
 	return db.Offset(r.Offset).Limit(r.Limit).Order(fmt.Sprintf("%s %s", sort, order))
+}
+
+func ApplyRawPaging(sql string, r *request.PagingRequest) string {
+	order := "desc"
+	if r.Order == "asc" {
+		order = r.Order
+	}
+	sort := r.Sort
+	if sort == "" {
+		sort = "update_time"
+	}
+
+	sql += fmt.Sprintf(" order by %s %s ", sort, order)
+
+
+	if r.Limit > 0 {
+		sql += fmt.Sprintf(" limit %d ", r.Limit)
+	}
+
+	if r.Offset > 0 {
+		sql += fmt.Sprintf(" offset %d ", r.Offset)
+	}
+
+
+
+	return sql
 }

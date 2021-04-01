@@ -49,6 +49,7 @@ func (engine *ProcessEngine) Deny(r *request.DenyInstanceRequest) error {
 		"is_denied":      true,
 		"update_time":    time.Now().Local(),
 		"update_by":      engine.currentUserId,
+		"state":          dto.StateArray{},
 	}
 
 	err := engine.tx.
