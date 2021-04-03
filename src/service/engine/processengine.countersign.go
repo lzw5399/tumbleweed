@@ -58,12 +58,12 @@ func (engine *ProcessEngine) IsCounterSignLastProcessor() (bool, error) {
 			unCompletedProcessor := util.SliceDiff(state.Processor, state.CompletedProcessor)
 
 			// 判断是否是最后一个未审批的人
-			if len(unCompletedProcessor) == 1 && unCompletedProcessor[0] == int(engine.currentUserId) {
+			if len(unCompletedProcessor) == 1 && unCompletedProcessor[0] == engine.userIdentifier {
 				isLastPerson = true
 			}
 
 			// 更新CompletedProcessor字段
-			engine.ProcessInstance.State[index].CompletedProcessor = append(engine.ProcessInstance.State[index].CompletedProcessor, int(engine.currentUserId))
+			engine.ProcessInstance.State[index].CompletedProcessor = append(engine.ProcessInstance.State[index].CompletedProcessor, engine.userIdentifier)
 			engine.ProcessInstance.State[index].UnCompletedProcessor = engine.RemoveCurrentFromUnCompleted(engine.ProcessInstance.State[index].UnCompletedProcessor)
 			matched = true
 			break
@@ -83,7 +83,7 @@ func (engine *ProcessEngine) UpdateInstanceForCounterSign() error {
 	toUpdate := map[string]interface{}{
 		"state":          engine.ProcessInstance.State,
 		"update_time":    time.Now().Local(),
-		"update_by":      engine.currentUserId,
+		"update_by":      engine.userIdentifier,
 		"related_person": engine.ProcessInstance.RelatedPerson,
 		"variables":      engine.ProcessInstance.Variables,
 	}
@@ -95,10 +95,10 @@ func (engine *ProcessEngine) UpdateInstanceForCounterSign() error {
 	return err
 }
 
-func (engine *ProcessEngine) RemoveCurrentFromUnCompleted(unCompletedProcessors []int) []int {
-	newArr := make([]int, len(unCompletedProcessors)-1)
+func (engine *ProcessEngine) RemoveCurrentFromUnCompleted(unCompletedProcessors []string) []string {
+	newArr := make([]string, len(unCompletedProcessors)-1)
 	for _, it := range unCompletedProcessors {
-		if it == int(engine.currentUserId) {
+		if it == engine.userIdentifier {
 			continue
 		}
 		newArr = append(newArr, it)

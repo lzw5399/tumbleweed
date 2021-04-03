@@ -6,26 +6,62 @@
 package request
 
 import (
-	"time"
+	"github.com/ahmetb/go-linq/v3"
 
 	"workflow/src/model"
-	"workflow/src/util"
 )
 
-type BatchSyncRoleUsersRequest struct {
-	RoleUsersList []SyncRoleUsersRequest
+// 同步
+type BatchSyncUserRoleRequest struct {
+	Users     []UserRequest     `json:"users"`
+	Roles     []RoleRequest     `json:"roles"`
+	UserRoles []UserRoleRequest `json:"userRoles"`
 }
 
-type SyncRoleUsersRequest struct {
-	RoleId  int   `json:"roleId"`
-	UserIds []int `json:"userIds"`
+type UserRequest struct {
+	Identifier string `json:"identifier"`
+	Name       string `json:"name"`
 }
 
-func (s *SyncRoleUsersRequest) ToRoleUsers(tenantId uint) model.RoleUsers {
-	return model.RoleUsers{
-		RoleId:     s.RoleId,
-		UserIds:    util.ParseToInt64Array(s.UserIds),
-		TenantId:   int(tenantId),
-		CreateTime: time.Now().Local(),
+type RoleRequest struct {
+	Identifier string `json:"identifier"`
+	Name       string `json:"name"`
+}
+
+type UserRoleRequest struct {
+	UserIdentifier string `json:"userIdentifier"`
+	RoleIdentifier string `json:"roleIdentifier"`
+}
+
+func (s *BatchSyncUserRoleRequest) ToDbEntities(tenantId int) (users []model.User, roles []model.Role, userRole []model.UserRole) {
+	if s.Users != nil {
+		linq.From(s.Users).SelectT(func(i UserRequest) interface{} {
+			return model.User{
+				Identifier: i.Identifier,
+				Name:       i.Name,
+				TenantId:   tenantId,
+			}
+		}).ToSlice(&users)
 	}
+
+	if s.Roles != nil {
+		linq.From(s.Roles).SelectT(func(i RoleRequest) interface{} {
+			return model.Role{
+				Identifier: i.Identifier,
+				Name:       i.Name,
+				TenantId:   tenantId,
+			}
+		}).ToSlice(&roles)
+	}
+
+	if s.UserRoles != nil {
+		linq.From(s.UserRoles).SelectT(func(i UserRoleRequest) interface{} {
+			return model.UserRole{
+				UserIdentifier: i.UserIdentifier,
+				RoleIdentifier: i.RoleIdentifier,
+			}
+		}).ToSlice(&userRole)
+	}
+
+	return
 }

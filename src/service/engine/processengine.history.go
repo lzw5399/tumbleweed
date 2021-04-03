@@ -56,8 +56,8 @@ func (engine *ProcessEngine) CreateHistory(remark string, isDenied bool) error {
 	// 创建新的一条流转历史
 	cirHistory := model.CirculationHistory{
 		AuditableBase: model.AuditableBase{
-			CreateBy: engine.currentUserId,
-			UpdateBy: engine.currentUserId,
+			CreateBy: engine.userIdentifier,
+			UpdateBy: engine.userIdentifier,
 		},
 		Title:             engine.ProcessInstance.Title,
 		ProcessInstanceId: engine.ProcessInstance.Id,
@@ -65,7 +65,7 @@ func (engine *ProcessEngine) CreateHistory(remark string, isDenied bool) error {
 		SourceId:          sourceId,
 		TargetId:          targetId,
 		Circulation:       circulation,
-		ProcessorId:       engine.currentUserId,
+		ProcessorId:       engine.userIdentifier,
 		CostDuration:      duration,
 		Remarks:           remark,
 	}

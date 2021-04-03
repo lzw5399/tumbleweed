@@ -8,13 +8,13 @@ package model
 import "time"
 
 type EntityBase struct {
-	Id uint `gorm:"primarykey" json:"id" form:"id"`
+	Id int `gorm:"primarykey" json:"id" form:"id"`
 }
 
 type AuditableBase struct {
 	EntityBase
 	CreateTime time.Time `gorm:"default:now();type:timestamp" json:"createTime" form:"createTime"`
 	UpdateTime time.Time `gorm:"default:now();type:timestamp"  json:"updateTime" form:"updateTime"`
-	CreateBy   uint      `json:"createBy" form:"createBy"`
-	UpdateBy   uint      `json:"updateBy" form:"updateBy"`
+	CreateBy   string    `json:"createBy" form:"createBy"`
+	UpdateBy   string    `json:"updateBy" form:"updateBy"`
 }

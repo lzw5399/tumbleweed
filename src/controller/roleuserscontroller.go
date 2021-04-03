@@ -14,22 +14,18 @@ import (
 	"workflow/src/util"
 )
 
-var (
-	roleUsersService service.RoleUsersService = service.NewRoleUsersService()
-)
-
 // @Tags role-users
 // @Summary 批量同步(创建或更新)角色用户映射关系
 // @Accept  json
 // @Produce json
-// @param request body request.BatchSyncRoleUsersRequest true "request"
+// @param request body request.BatchSyncUserRoleRequest true "request"
 // @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/wf/role-users/_batch [POST]
 func BatchSyncRoleUsers(c echo.Context) error {
 	var (
-		r   request.BatchSyncRoleUsersRequest
+		r   request.BatchSyncUserRoleRequest
 		err error
 	)
 
@@ -38,7 +34,7 @@ func BatchSyncRoleUsers(c echo.Context) error {
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
-	err = roleUsersService.BatchSyncRoleUsers(&r, tenantId)
+	err = service.BatchSyncRoleUsers(&r, tenantId)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -55,21 +51,21 @@ func BatchSyncRoleUsers(c echo.Context) error {
 // @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
 // @Success 200 {object} response.HttpResponse
 // @Router /api/wf/role-users [POST]
-func SyncRoleUsers(c echo.Context) error {
-	var (
-		r   request.SyncRoleUsersRequest
-		err error
-	)
-
-	if err = c.Bind(&r); err != nil {
-		return response.BadRequest(c)
-	}
-
-	tenantId := util.GetCurrentTenantId(c)
-	err = roleUsersService.SyncRoleUsers(&r, tenantId)
-	if err != nil {
-		return response.Failed(c, err)
-	}
-
-	return response.OkWithMessage(c, "更新成功")
-}
+//func SyncRoleUsers(c echo.Context) error {
+//	var (
+//		r   request.SyncRoleUsersRequest
+//		err error
+//	)
+//
+//	if err = c.Bind(&r); err != nil {
+//		return response.BadRequest(c)
+//	}
+//
+//	tenantId := util.GetCurrentTenantId(c)
+//	err = service.SyncRoleUsers(&r, tenantId)
+//	if err != nil {
+//		return response.Failed(c, err)
+//	}
+//
+//	return response.OkWithMessage(c, "更新成功")
+//}

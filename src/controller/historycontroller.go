@@ -11,7 +11,6 @@ import (
 	"workflow/src/global/response"
 	"workflow/src/model/request"
 	"workflow/src/service"
-	"workflow/src/util"
 )
 
 // @Tags process-instances
@@ -30,9 +29,7 @@ func ListHistory(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	tenantId := util.GetCurrentTenantId(c)
-	currentUserId := util.GetCurrentUserId(c)
-	trainNodes, err := service.ListHistory(&r, currentUserId, tenantId)
+	trainNodes, err := service.ListHistory(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}

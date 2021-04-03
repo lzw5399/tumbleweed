@@ -8,16 +8,11 @@ package controller
 import (
 	"strconv"
 
+	"github.com/labstack/echo/v4"
+
 	"workflow/src/global/response"
 	"workflow/src/model/request"
 	"workflow/src/service"
-	"workflow/src/util"
-
-	"github.com/labstack/echo/v4"
-)
-
-var (
-	instanceService service.InstanceService = service.NewInstanceService()
 )
 
 // @Tags process-instances
@@ -35,9 +30,7 @@ func CreateProcessInstance(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	currentUserId := util.GetCurrentUserId(c)
-	tenantId := util.GetCurrentTenantId(c)
-	processInstance, err := instanceService.CreateProcessInstance(&r, currentUserId, tenantId)
+	processInstance, err := service.CreateProcessInstance(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -61,8 +54,7 @@ func ListProcessInstances(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	tenantId := util.GetCurrentTenantId(c)
-	instances, err := instanceService.ListProcessInstance(&r, util.GetCurrentUserId(c), tenantId)
+	instances, err := service.ListProcessInstance(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -85,8 +77,7 @@ func HandleProcessInstance(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	tenantId := util.GetCurrentTenantId(c)
-	instance, err := instanceService.HandleProcessInstance(&r, util.GetCurrentUserId(c), tenantId)
+	instance, err := service.HandleProcessInstance(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -109,9 +100,7 @@ func DenyProcessInstance(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	tenantId := util.GetCurrentTenantId(c)
-	currentUserId := util.GetCurrentUserId(c)
-	instance, err := instanceService.DenyProcessInstance(&r, currentUserId, tenantId)
+	instance, err := service.DenyProcessInstance(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -134,9 +123,7 @@ func GetProcessInstance(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	currentUserId := util.GetCurrentUserId(c)
-	tenantId := util.GetCurrentTenantId(c)
-	instance, err := instanceService.GetProcessInstance(&r, currentUserId, tenantId)
+	instance, err := service.GetProcessInstance(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -158,8 +145,7 @@ func GetProcessTrain(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	tenantId := util.GetCurrentTenantId(c)
-	trainNodes, err := instanceService.GetProcessTrain(nil, uint(id), tenantId)
+	trainNodes, err := service.GetProcessTrain(nil, id, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}

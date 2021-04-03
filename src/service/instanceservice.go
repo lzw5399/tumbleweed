@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	. "github.com/ahmetb/go-linq/v3"
+	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 
 	"workflow/src/global"
@@ -23,27 +24,12 @@ import (
 	"workflow/src/util"
 )
 
-type InstanceService interface {
-	CreateProcessInstance(*request.ProcessInstanceRequest, uint, uint) (*model.ProcessInstance, error)
-	GetProcessInstance(*request.GetInstanceRequest, uint, uint) (*response.ProcessInstanceResponse, error)
-	ListProcessInstance(*request.InstanceListRequest, uint, uint) (*response.PagingResponse, error)
-	HandleProcessInstance(*request.HandleInstancesRequest, uint, uint) (*model.ProcessInstance, error)
-	GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error)
-	DenyProcessInstance(*request.DenyInstanceRequest, uint, uint) (*model.ProcessInstance, error)
-}
-
-type instanceService struct {
-}
-
-func NewInstanceService() *instanceService {
-	return &instanceService{}
-}
-
 // 创建实例
-func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
+func CreateProcessInstance(r *request.ProcessInstanceRequest, c echo.Context) (*model.ProcessInstance, error) {
 	var (
-		processDefinition model.ProcessDefinition // 流程模板
-		tx                = global.BankDb.Begin() // 开启事务
+		processDefinition        model.ProcessDefinition // 流程模板
+		tx                       = global.BankDb.Begin() // 开启事务
+		tenantId, userIdentifier = util.GetWorkContext(c)
 	)
 
 	// 检查变量是否合法
@@ -63,7 +49,7 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 	}
 
 	// 初始化流程引擎
-	instanceEngine, err := engine.NewProcessEngine(processDefinition, r.ToProcessInstance(currentUserId, tenantId), currentUserId, tenantId, tx)
+	instanceEngine, err := engine.NewProcessEngine(processDefinition, r.ToProcessInstance(userIdentifier, tenantId), userIdentifier, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +78,11 @@ func (i *instanceService) CreateProcessInstance(r *request.ProcessInstanceReques
 }
 
 // 获取单个ProcessInstance
-func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, currentUserId uint, tenantId uint) (*response.ProcessInstanceResponse, error) {
-	var instance model.ProcessInstance
+func GetProcessInstance(r *request.GetInstanceRequest, c echo.Context) (*response.ProcessInstanceResponse, error) {
+	var (
+		instance                 model.ProcessInstance
+		tenantId, userIdentifier = util.GetWorkContext(c)
+	)
 	err := global.BankDb.
 		Where("id=?", r.Id).
 		Where("tenant_id = ?", tenantId).
@@ -107,7 +96,7 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 	exist := false
 	for _, state := range instance.State {
 		for _, processor := range state.Processor {
-			if processor == int(currentUserId) {
+			if processor == userIdentifier {
 				exist = true
 				break
 			}
@@ -115,7 +104,7 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 	}
 	if !exist {
 		exist = From(instance.RelatedPerson).AnyWith(func(i interface{}) bool {
-			return i.(int64) == int64(currentUserId)
+			return i.(string) == userIdentifier
 		})
 
 		if !exist {
@@ -129,7 +118,7 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 
 	// 包括流程链路
 	if r.IncludeProcessTrain {
-		trainNodes, err := i.GetProcessTrain(&instance, instance.Id, tenantId)
+		trainNodes, err := GetProcessTrain(&instance, instance.Id, c)
 		if err != nil {
 			return nil, err
 		}
@@ -140,13 +129,16 @@ func (i *instanceService) GetProcessInstance(r *request.GetInstanceRequest, curr
 }
 
 // 获取ProcessInstance列表
-func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, currentUserId uint, tenantId uint) (*response.PagingResponse, error) {
-	var instances []model.ProcessInstance
-	var db *gorm.DB
+func ListProcessInstance(r *request.InstanceListRequest, c echo.Context) (*response.PagingResponse, error) {
+	var (
+		instances                []model.ProcessInstance
+		db                       *gorm.DB
+		tenantId, userIdentifier = util.GetWorkContext(c)
+	)
 
 	switch r.Type {
 	case constant.I_MyToDo:
-		return getTodoInstances(r, currentUserId, tenantId)
+		return getTodoInstances(r, userIdentifier, tenantId)
 	default:
 		db = global.BankDb.Model(&model.ProcessInstance{}).
 			Where("tenant_id = ?", tenantId)
@@ -155,14 +147,14 @@ func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, cu
 	// 根据type的不同有不同的逻辑
 	switch r.Type {
 	case constant.I_MyToDo:
-		//db = db.Joins("cross join jsonb_array_elements(state) as elem").Where(fmt.Sprintf("elem -> 'processor' @> '[%v]'", currentUserId))
+		//db = db.Joins("cross join jsonb_array_elements(state) as elem").Where(fmt.Sprintf("elem -> 'processor' @> '[%v]'", userIdentifier))
 		break
 	case constant.I_ICreated:
-		db = db.Where("create_by=?", currentUserId)
+		db = db.Where("create_by=?", userIdentifier)
 		break
 	case constant.I_IRelated:
 		db = db.Joins("cross join jsonb_array_elements(state) as elem").
-			Where(fmt.Sprintf("related_person @> Array[%d] or elem -> 'processor' @> '[%v]'", currentUserId, currentUserId))
+			Where(fmt.Sprintf("related_person @> Array[%d] or elem -> 'processor' @> '[%v]'", userIdentifier, userIdentifier))
 		break
 	case constant.I_All:
 		break
@@ -188,9 +180,10 @@ func (i *instanceService) ListProcessInstance(r *request.InstanceListRequest, cu
 }
 
 // 处理/审批ProcessInstance
-func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
+func HandleProcessInstance(r *request.HandleInstancesRequest, c echo.Context) (*model.ProcessInstance, error) {
 	var (
-		tx = global.BankDb.Begin() // 开启事务
+		tx                       = global.BankDb.Begin() // 开启事务
+		tenantId, userIdentifier = util.GetWorkContext(c)
 	)
 
 	// 验证变量是否符合要求
@@ -200,7 +193,7 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 	}
 
 	// 流程实例引擎
-	processEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	processEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, userIdentifier, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -226,13 +219,14 @@ func (i *instanceService) HandleProcessInstance(r *request.HandleInstancesReques
 }
 
 // 否决流程
-func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, currentUserId uint, tenantId uint) (*model.ProcessInstance, error) {
+func DenyProcessInstance(r *request.DenyInstanceRequest, c echo.Context) (*model.ProcessInstance, error) {
 	var (
-		tx = global.BankDb.Begin() // 开启事务
+		tx                       = global.BankDb.Begin() // 开启事务
+		tenantId, userIdentifier = util.GetWorkContext(c)
 	)
 
 	// 流程实例引擎
-	instanceEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, currentUserId, tenantId, tx)
+	instanceEngine, err := engine.NewProcessEngineByInstanceId(r.ProcessInstanceId, userIdentifier, tenantId, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -255,9 +249,13 @@ func (i *instanceService) DenyProcessInstance(r *request.DenyInstanceRequest, cu
 }
 
 // 获取流程链(用于展示)
-func (i *instanceService) GetProcessTrain(pi *model.ProcessInstance, instanceId uint, tenantId uint) ([]response.ProcessChainNode, error) {
+func GetProcessTrain(pi *model.ProcessInstance, instanceId int, c echo.Context) ([]response.ProcessChainNode, error) {
+	var (
+		instance                 model.ProcessInstance
+		tenantId, _ = util.GetWorkContext(c)
+	)
+	
 	// 1. 获取流程实例(如果为空)
-	var instance model.ProcessInstance
 	if pi == nil {
 		err := global.BankDb.
 			Where("id=?", instanceId).
@@ -416,7 +414,7 @@ func getPossibleTrainNode(definitionStructure dto.Structure, currentNodeId strin
 	}
 }
 
-func getTodoInstances(r *request.InstanceListRequest, currentUserId uint, tenantId uint) (*response.PagingResponse, error) {
+func getTodoInstances(r *request.InstanceListRequest, userIdentifier string, tenantId int) (*response.PagingResponse, error) {
 	countSql := fmt.Sprintf(`with base as (
 		select *,
 			jsonb_array_elements(state) as singleState
@@ -429,7 +427,7 @@ func getTodoInstances(r *request.InstanceListRequest, currentUserId uint, tenant
 				from base
 				where singleState -> 'processor' @> '[%d]'
 				and singleState -> 'unCompletedProcessor' @> '[%d]'`,
-		tenantId, currentUserId, currentUserId)
+		tenantId, userIdentifier, userIdentifier)
 	if r.Keyword != "" {
 		countSql += fmt.Sprintf(" AND title ~ '%s'", r.Keyword)
 	}
@@ -452,7 +450,7 @@ func getTodoInstances(r *request.InstanceListRequest, currentUserId uint, tenant
 				from base
 				where singleState -> 'processor' @> '[%d]'
 				and singleState -> 'unCompletedProcessor' @> '[%d]' `,
-		tenantId, currentUserId, currentUserId)
+		tenantId, userIdentifier, userIdentifier)
 	if r.Keyword != "" {
 		sql += fmt.Sprintf(" AND title ~ '%s'", r.Keyword)
 	}

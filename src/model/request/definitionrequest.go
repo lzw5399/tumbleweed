@@ -16,7 +16,7 @@ import (
 )
 
 type ProcessDefinitionRequest struct {
-	Id         uint            `json:"id" form:"id"`
+	Id         int             `json:"id" form:"id"`
 	Name       string          `json:"name" form:"name"`                                // 流程名称
 	FormId     int             `json:"formId" form:"formId"`                            // 对应的表单的id(仅对外部系统做一个标记)
 	Structure  json.RawMessage `json:"structure" form:"structure" swaggertype:"string"` // 流程结构
