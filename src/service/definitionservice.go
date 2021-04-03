@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 
 	"workflow/src/global"
@@ -22,23 +23,7 @@ import (
 	"workflow/src/util"
 )
 
-type DefinitionService interface {
-	CreateDefinition(*request.ProcessDefinitionRequest, uint, uint) (*model.ProcessDefinition, error)
-	Validate(*request.ProcessDefinitionRequest, uint, uint) error
-	UpdateDefinition(*request.ProcessDefinitionRequest, uint, uint) error
-	DeleteDefinition(id uint, tenantId uint) error
-	GetDefinition(id uint, tenantId uint) (*model.ProcessDefinition, error)
-	List(r *request.DefinitionListRequest, currentUserId uint, tenantId uint) (interface{}, error)
-}
-
-func NewDefinitionService() *definitionService {
-	return &definitionService{}
-}
-
-type definitionService struct {
-}
-
-func (d *definitionService) GetDefinition(id uint, tenantId uint) (*model.ProcessDefinition, error) {
+func GetDefinition(id int, tenantId int) (*model.ProcessDefinition, error) {
 	var definition model.ProcessDefinition
 
 	err := global.BankDb.
@@ -46,7 +31,7 @@ func (d *definitionService) GetDefinition(id uint, tenantId uint) (*model.Proces
 		Where("tenant_id=?", tenantId).
 		First(&definition).Error
 	if err != nil {
-		log.Error(err)
+		global.BankLogger.Error(err)
 		return nil, util.NewError("查询流程详情失败")
 	}
 
@@ -54,7 +39,7 @@ func (d *definitionService) GetDefinition(id uint, tenantId uint) (*model.Proces
 }
 
 // 验证
-func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, excludeId uint, tenantId uint) error {
+func ValidateDefinitionRequest(r *request.ProcessDefinitionRequest, excludeId int, tenantId int) error {
 	// 验证名称是否已存在
 	var c int64
 	global.BankDb.Model(&model.ProcessDefinition{}).
@@ -86,11 +71,14 @@ func (d *definitionService) Validate(r *request.ProcessDefinitionRequest, exclud
 }
 
 // 创建新的process流程
-func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint, tenantId uint) (*model.ProcessDefinition, error) {
-	processDefinition := r.ProcessDefinition()
-	processDefinition.CreateBy = currentUserId
-	processDefinition.UpdateBy = currentUserId
-	processDefinition.TenantId = int(tenantId)
+func CreateDefinition(r *request.ProcessDefinitionRequest, c echo.Context) (*model.ProcessDefinition, error) {
+	var (
+		processDefinition        = r.ProcessDefinition()
+		tenantId, userIdentifier = util.GetWorkContext(c)
+	)
+	processDefinition.CreateBy = userIdentifier
+	processDefinition.UpdateBy = userIdentifier
+	processDefinition.TenantId = tenantId
 
 	err := global.BankDb.Create(&processDefinition).Error
 	if err != nil {
@@ -102,8 +90,11 @@ func (d *definitionService) CreateDefinition(r *request.ProcessDefinitionRequest
 }
 
 // 更新流程定义
-func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest, currentUserId uint, tenantId uint) error {
-	processDefinition := r.ProcessDefinition()
+func UpdateDefinition(r *request.ProcessDefinitionRequest, c echo.Context) error {
+	var (
+		processDefinition        = r.ProcessDefinition()
+		tenantId, userIdentifier = util.GetWorkContext(c)
+	)
 
 	// 先查询
 	var count int64
@@ -126,7 +117,7 @@ func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest
 			"task":        processDefinition.Task,
 			"notice":      processDefinition.Notice,
 			"remarks":     processDefinition.Remarks,
-			"update_by":   currentUserId,
+			"update_by":   userIdentifier,
 			"update_time": time.Now().Local(),
 		}).Error
 
@@ -134,7 +125,7 @@ func (d *definitionService) UpdateDefinition(r *request.ProcessDefinitionRequest
 }
 
 // 删除流程定义
-func (d *definitionService) DeleteDefinition(id uint, tenantId uint) error {
+func DeleteDefinition(id int, tenantId int) error {
 	// 先查询
 	var count int64
 	err := global.BankDb.Model(&model.ProcessDefinition{}).
@@ -155,14 +146,18 @@ func (d *definitionService) DeleteDefinition(id uint, tenantId uint) error {
 	return nil
 }
 
-func (d *definitionService) List(r *request.DefinitionListRequest, currentUserId uint, tenantId uint) (interface{}, error) {
-	var definitions []model.ProcessDefinition
+func GetDefinitionList(r *request.DefinitionListRequest, c echo.Context) (interface{}, error) {
+	var (
+		definitions              []model.ProcessDefinition
+		tenantId, userIdentifier = util.GetWorkContext(c)
+	)
+
 	db := global.BankDb.Model(&model.ProcessDefinition{}).Where("tenant_id = ?", tenantId)
 
 	// 根据type的不同有不同的逻辑
 	switch r.Type {
 	case constant.D_ICreated:
-		db = db.Where("create_by=?", currentUserId)
+		db = db.Where("create_by=?", userIdentifier)
 		break
 	case constant.D_All:
 		break

@@ -15,10 +15,6 @@ import (
 	"workflow/src/util"
 )
 
-var (
-	definitionService service.DefinitionService = service.NewDefinitionService()
-)
-
 // @Tags process-definitions
 // @Summary 创建流程模板
 // @Accept  json
@@ -40,14 +36,13 @@ func CreateProcessDefinition(c echo.Context) error {
 
 	// 验证
 	tenantId := util.GetCurrentTenantId(c)
-	err = definitionService.Validate(&r, 0, tenantId)
+	err = service.ValidateDefinitionRequest(&r, 0, tenantId)
 	if err != nil {
 		return response.Failed(c, err)
 	}
 
 	// 创建
-	currentUserId := util.GetCurrentUserId(c)
-	processDefinition, err := definitionService.CreateDefinition(&r, currentUserId, tenantId)
+	processDefinition, err := service.CreateDefinition(&r, c)
 	if err != nil {
 		global.BankLogger.Error("CreateProcess错误", err)
 		return response.Failed(c, err)
@@ -77,13 +72,12 @@ func UpdateProcessDefinition(c echo.Context) error {
 
 	// 验证
 	tenantId := util.GetCurrentTenantId(c)
-	err = definitionService.Validate(&r, r.Id, tenantId)
+	err = service.ValidateDefinitionRequest(&r, r.Id, tenantId)
 	if err != nil {
 		return response.Failed(c, err)
 	}
 
-	currentUserId := util.GetCurrentUserId(c)
-	err = definitionService.UpdateDefinition(&r, currentUserId, tenantId)
+	err = service.UpdateDefinition(&r, c)
 	if err != nil {
 		global.BankLogger.Error("UpdateProcessDefinition错误", err)
 		return response.Failed(c, err)
@@ -107,7 +101,7 @@ func DeleteProcessDefinition(c echo.Context) error {
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
-	err := definitionService.DeleteDefinition(util.StringToUint(definitionId), tenantId)
+	err := service.DeleteDefinition(util.StringToInt(definitionId), tenantId)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -130,7 +124,7 @@ func GetProcessDefinition(c echo.Context) error {
 	}
 
 	tenantId := util.GetCurrentTenantId(c)
-	definition, err := definitionService.GetDefinition(util.StringToUint(definitionId), tenantId)
+	definition, err := service.GetDefinition(util.StringToInt(definitionId), tenantId)
 	if err != nil {
 		return response.Failed(c, err)
 	}
@@ -154,8 +148,7 @@ func ListProcessDefinition(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	tenantId := util.GetCurrentTenantId(c)
-	instances, err := definitionService.List(&r, util.GetCurrentUserId(c), tenantId)
+	instances, err := service.GetDefinitionList(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}

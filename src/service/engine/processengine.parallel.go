@@ -139,7 +139,7 @@ func (engine *ProcessEngine) UpdateInstanceStateForParallel(mergedStates dto.Sta
 	toUpdate := map[string]interface{}{
 		"state":          mergedStates,
 		"update_time":    time.Now().Local(),
-		"update_by":      engine.currentUserId,
+		"update_by":      engine.userIdentifier,
 		"related_person": engine.ProcessInstance.RelatedPerson,
 		"variables":      engine.ProcessInstance.Variables,
 	}

@@ -22,8 +22,8 @@ import (
 
 type ProcessEngine struct {
 	tx                  *gorm.DB                // 数据库事务对象
-	currentUserId       uint                    // 当前用户id
-	tenantId            uint                    // 当前租户id
+	userIdentifier      string                  // 当前用户外部系统的id
+	tenantId            int                     // 当前租户id
 	sourceNode          *dto.Node               // 流转的源node
 	targetNode          *dto.Node               // 流转的目标node
 	linkEdge            *dto.Edge               // sourceNode和targetNode中间连接的edge
@@ -33,19 +33,19 @@ type ProcessEngine struct {
 }
 
 // 初始化流程引擎
-func NewProcessEngine(p model.ProcessDefinition, instance model.ProcessInstance, currentUserId uint, tenantId uint, tx *gorm.DB) (*ProcessEngine, error) {
+func NewProcessEngine(p model.ProcessDefinition, instance model.ProcessInstance, userIdentifier string, tenantId int, tx *gorm.DB) (*ProcessEngine, error) {
 	return &ProcessEngine{
 		ProcessDefinition:   p,
 		ProcessInstance:     instance,
 		DefinitionStructure: p.Structure,
-		currentUserId:       currentUserId,
+		userIdentifier:      userIdentifier,
 		tenantId:            tenantId,
 		tx:                  tx,
 	}, nil
 }
 
 // 初始化流程引擎(带process_instance)
-func NewProcessEngineByInstanceId(processInstanceId uint, currentUserId uint, tenantId uint, tx *gorm.DB) (*ProcessEngine, error) {
+func NewProcessEngineByInstanceId(processInstanceId int, userIdentifier string, tenantId int, tx *gorm.DB) (*ProcessEngine, error) {
 	var processInstance model.ProcessInstance
 	var processDefinition model.ProcessDefinition
 
@@ -73,7 +73,7 @@ func NewProcessEngineByInstanceId(processInstanceId uint, currentUserId uint, te
 		ProcessInstance:     processInstance,
 		ProcessDefinition:   processDefinition,
 		DefinitionStructure: processDefinition.Structure,
-		currentUserId:       currentUserId,
+		userIdentifier:      userIdentifier,
 		tenantId:            tenantId,
 		tx:                  tx,
 	}, nil
@@ -331,8 +331,8 @@ func (engine *ProcessEngine) GenNewStates(nodes []dto.Node) (dto.StateArray, err
 		state := dto.State{
 			Id:                 node.Id,
 			Label:              node.Label,
-			Processor:          []int{},
-			CompletedProcessor: []int{},
+			Processor:          []string{},
+			CompletedProcessor: []string{},
 			ProcessMethod:      node.AssignType,  // 处理方式(角色 用户等)
 			AssignValue:        node.AssignValue, // 指定的处理者(用户的id或者角色的id)
 			AvailableEdges:     []dto.Edge{},
@@ -399,36 +399,17 @@ func (engine *ProcessEngine) MergeStates(removeNodeId string, newNodes []dto.Nod
 }
 
 // 通过角色id获取用户id
-func (engine *ProcessEngine) GetUserIdsByRoleIds(roleIds []int) ([]int, error) {
-	var roleUsersList []model.RoleUsers
-	err := global.BankDb.
-		Model(&model.RoleUsers{}).
-		Where("tenant_id = ?", engine.tenantId).
-		Where("role_id in ?", roleIds).
-		Find(&roleUsersList).
+func (engine *ProcessEngine) GetUserIdsByRoleIds(roleIds []string) ([]string, error) {
+	var userIds []string
+	err := global.BankDb.Model(&model.Role{}).
+		Joins("inner join wf.user_role on user_role.role_identifier = role.identifier").
+		Joins("inner join wf.user on user_role.user_identifier = user.identifier").
+		Where("role.tenant_id = ? and role.identifier in ?", engine.tenantId, roleIds).
+		Select("user.identifier").
+		Scan(&userIds).
 		Error
-	if err != nil {
-		global.BankLogger.Errorln("查询role_user失败", err)
-		return nil, err
-	}
 
-	// 使用map来提高查询效率
-	finalUserIdMap := make(map[int64]bool, 0)
-	for _, roleUsers := range roleUsersList {
-		for _, userId := range roleUsers.UserIds {
-			if _, present := finalUserIdMap[userId]; !present {
-				finalUserIdMap[userId] = true
-			}
-		}
-	}
-
-	// 转成[]string
-	finalUserIds := make([]int, 0)
-	for k := range finalUserIdMap {
-		finalUserIds = append(finalUserIds, int(k))
-	}
-
-	return finalUserIds, nil
+	return userIds, err
 }
 
 // 合并更新变量

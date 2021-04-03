@@ -21,7 +21,7 @@ func (engine *ProcessEngine) Circulation(newStates dto.StateArray) error {
 		"related_person": engine.ProcessInstance.RelatedPerson,
 		"is_end":         false,
 		"update_time":    time.Now().Local(),
-		"update_by":      engine.currentUserId,
+		"update_by":      engine.userIdentifier,
 		"variables":      engine.ProcessInstance.Variables,
 	}
 
@@ -48,7 +48,7 @@ func (engine *ProcessEngine) Deny(r *request.DenyInstanceRequest) error {
 		"related_person": engine.ProcessInstance.RelatedPerson,
 		"is_denied":      true,
 		"update_time":    time.Now().Local(),
-		"update_by":      engine.currentUserId,
+		"update_by":      engine.userIdentifier,
 		"state":          dto.StateArray{},
 	}
 
@@ -75,23 +75,22 @@ func (engine *ProcessEngine) UpdateRelatedPerson() {
 	// 获取最新的相关者RelatedPerson
 	exist := false
 	for _, person := range engine.ProcessInstance.RelatedPerson {
-		if uint(person) == engine.currentUserId {
+		if person == engine.userIdentifier {
 			exist = true
 			break
 		}
 	}
 	if !exist {
-		engine.ProcessInstance.RelatedPerson = append(engine.ProcessInstance.RelatedPerson, int64(engine.currentUserId))
+		engine.ProcessInstance.RelatedPerson = append(engine.ProcessInstance.RelatedPerson, engine.userIdentifier)
 	}
 }
 
 // 通过当前用户id获取当前审批的是哪个state的
 func (engine *ProcessEngine) GetStatesByCurrentUserId() dto.StateArray {
 	states := dto.StateArray{}
-	currentUserId := int(engine.currentUserId)
 	for _, state := range engine.ProcessInstance.State {
 		// 审核者中有当前角色，但是审核完成中没有
-		if util.SliceAnyInt(state.Processor, currentUserId) && !util.SliceAnyInt(state.CompletedProcessor, currentUserId) {
+		if util.SliceAnyString(state.Processor, engine.userIdentifier) && !util.SliceAnyString(state.CompletedProcessor, engine.userIdentifier) {
 			states = append(states, state)
 		}
 	}

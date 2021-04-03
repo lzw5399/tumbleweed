@@ -6,6 +6,8 @@
 package service
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"workflow/src/global"
 	"workflow/src/global/constant"
 	"workflow/src/global/shared"
@@ -15,8 +17,12 @@ import (
 	"workflow/src/util"
 )
 
-func ListHistory(r *request.HistoryListRequest, currentUserId uint, tenantId uint) (*response.PagingResponse, error) {
-	var histories []model.CirculationHistory
+func ListHistory(r *request.HistoryListRequest, c echo.Context) (*response.PagingResponse, error) {
+	var (
+		histories   []model.CirculationHistory
+		tenantId, _ = util.GetWorkContext(c)
+	)
+
 	db := global.BankDb.
 		Model(&model.ProcessInstance{}).
 		Where("tenant_id = ?", tenantId).

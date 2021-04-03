@@ -42,6 +42,6 @@ func RegisterRoleUsers(r *echo.Group) {
 	instanceGroup := r.Group("/role-users")
 	{
 		instanceGroup.POST("/_batch", controller.BatchSyncRoleUsers) // 批量更新
-		instanceGroup.POST("", controller.SyncRoleUsers)             // 单条更新
+		//instanceGroup.POST("", controller.SyncRoleUsers)             // 单条更新
 	}
 }

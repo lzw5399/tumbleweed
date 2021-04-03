@@ -6,8 +6,8 @@
 package util
 
 // 取差集
-func SliceDiff(a, b []int) (diff []int) {
-	m := make(map[int]bool)
+func SliceDiff(a, b []string) (diff []string) {
+	m := make(map[string]bool)
 
 	for _, item := range b {
 		m[item] = true
@@ -22,16 +22,6 @@ func SliceDiff(a, b []int) (diff []int) {
 }
 
 func SliceAnyString(s []string, it string) bool {
-	for _, item := range s {
-		if item == it {
-			return true
-		}
-	}
-
-	return false
-}
-
-func SliceAnyInt(s []int, it int) bool {
 	for _, item := range s {
 		if item == it {
 			return true

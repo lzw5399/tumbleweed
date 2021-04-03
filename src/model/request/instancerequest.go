@@ -18,7 +18,7 @@ type ProcessInstanceRequest struct {
 	Variables           []model.InstanceVariable `json:"variables"`                                      // 变量
 }
 
-func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId uint) model.ProcessInstance {
+func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId string, tenantId int) model.ProcessInstance {
 	if i.Variables == nil {
 		i.Variables = []model.InstanceVariable{}
 	}
@@ -31,7 +31,7 @@ func (i *ProcessInstanceRequest) ToProcessInstance(currentUserId uint, tenantId 
 		},
 		Title:               i.Title,
 		ProcessDefinitionId: i.ProcessDefinitionId,
-		TenantId:            int(tenantId),
+		TenantId:            tenantId,
 		Variables:           util.MarshalToDbJson(i.Variables),
 	}
 }
@@ -42,11 +42,11 @@ type GetInstanceRequest struct {
 }
 
 type GetVariableRequest struct {
-	InstanceId   uint   `json:"instanceId,omitempty" form:"instanceId,omitempty"`
+	InstanceId   int    `json:"instanceId,omitempty" form:"instanceId,omitempty"`
 	VariableName string `json:"variableName,omitempty" form:"variableName,omitempty"`
 }
 
 type GetVariableListRequest struct {
 	PagingRequest
-	InstanceId uint `json:"instanceId,omitempty" form:"instanceId,omitempty"`
+	InstanceId int `json:"instanceId,omitempty" form:"instanceId,omitempty"`
 }

@@ -67,7 +67,7 @@ func (engine *ProcessEngine) EnsurePermission(state dto.State) error {
 	// 判断当前角色是否有权限
 	hasPermission := false
 	for _, processor := range state.Processor {
-		if uint(processor) == engine.currentUserId {
+		if processor == engine.userIdentifier {
 			hasPermission = true
 			break
 		}
@@ -78,7 +78,7 @@ func (engine *ProcessEngine) EnsurePermission(state dto.State) error {
 	}
 
 	alreadyCompleted := From(state.CompletedProcessor).AnyWith(func(it interface{}) bool {
-		return it.(int) == int(engine.currentUserId)
+		return it.(string) == engine.userIdentifier
 	})
 	if alreadyCompleted {
 		return util.Forbidden.New("当前用户针对目前节点已审核, 无法重复审核")

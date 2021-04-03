@@ -7,18 +7,16 @@ package util
 
 import (
 	"encoding/json"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 
 	"workflow/src/model"
 )
 
-func GetCurrentUserId(c echo.Context) uint {
+func GetUserIdentifier(c echo.Context) string {
 	u := c.Get("currentUser").(string)
-	i, _ := strconv.Atoi(u)
 
-	return uint(i)
+	return u
 }
 
 func GetCurrentTenant(c echo.Context) (tenants model.Tenant) {
@@ -29,6 +27,10 @@ func GetCurrentTenant(c echo.Context) (tenants model.Tenant) {
 	return
 }
 
-func GetCurrentTenantId(c echo.Context) uint {
+func GetCurrentTenantId(c echo.Context) int {
 	return GetCurrentTenant(c).Id
+}
+
+func GetWorkContext(c echo.Context) (int, string) {
+	return GetCurrentTenantId(c), GetUserIdentifier(c)
 }
