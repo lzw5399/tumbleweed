@@ -154,7 +154,7 @@ func ListProcessInstance(r *request.InstanceListRequest, c echo.Context) (*respo
 		break
 	case constant.I_IRelated:
 		db = db.Joins("cross join jsonb_array_elements(state) as elem").
-			Where(fmt.Sprintf("related_person @> Array[%d] or elem -> 'processor' @> '[%v]'", userIdentifier, userIdentifier))
+			Where(fmt.Sprintf("related_person @> Array[%s] or elem -> 'processor' @> '[%s]'", userIdentifier, userIdentifier))
 		break
 	case constant.I_All:
 		break
@@ -425,8 +425,8 @@ func getTodoInstances(r *request.InstanceListRequest, userIdentifier string, ten
 			)
 			select count(1)
 				from base
-				where singleState -> 'processor' @> '[%d]'
-				and singleState -> 'unCompletedProcessor' @> '[%d]'`,
+				where singleState -> 'processor' @> '["%s"]'
+				and singleState -> 'unCompletedProcessor' @> '["%s"]'`,
 		tenantId, userIdentifier, userIdentifier)
 	if r.Keyword != "" {
 		countSql += fmt.Sprintf(" AND title ~ '%s'", r.Keyword)
@@ -448,8 +448,8 @@ func getTodoInstances(r *request.InstanceListRequest, userIdentifier string, ten
 			select id, create_time, update_time, create_by, update_by, title, priority,
 				process_definition_id, classify_id, is_end, is_denied, state, related_person, tenant_id, variables
 				from base
-				where singleState -> 'processor' @> '[%d]'
-				and singleState -> 'unCompletedProcessor' @> '[%d]' `,
+				where singleState -> 'processor' @> '["%s"]'
+				and singleState -> 'unCompletedProcessor' @> '["%s"]' `,
 		tenantId, userIdentifier, userIdentifier)
 	if r.Keyword != "" {
 		sql += fmt.Sprintf(" AND title ~ '%s'", r.Keyword)

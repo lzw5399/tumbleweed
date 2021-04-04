@@ -403,9 +403,9 @@ func (engine *ProcessEngine) GetUserIdsByRoleIds(roleIds []string) ([]string, er
 	var userIds []string
 	err := global.BankDb.Model(&model.Role{}).
 		Joins("inner join wf.user_role on user_role.role_identifier = role.identifier").
-		Joins("inner join wf.user on user_role.user_identifier = user.identifier").
+		Joins("inner join wf.user on user_role.user_identifier = \"user\".identifier").
 		Where("role.tenant_id = ? and role.identifier in ?", engine.tenantId, roleIds).
-		Select("user.identifier").
+		Select("\"user\".identifier").
 		Scan(&userIds).
 		Error
 

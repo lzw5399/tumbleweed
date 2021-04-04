@@ -27,7 +27,7 @@ type Role struct {
 	CreateTime time.Time `gorm:"default:now();type:timestamp" json:"createTime"`
 }
 
-// 用户角色关联表
+// 用户角色关联表%v
 type UserRole struct {
 	EntityBase
 	UserIdentifier string `gorm:"index" json:"userIdentifier"`
