@@ -26,12 +26,14 @@ func ListHistory(r *request.HistoryListRequest, c echo.Context) (*response.Pagin
 	db := global.BankDb.
 		Model(&model.ProcessInstance{}).
 		Where("tenant_id = ?", tenantId).
-		Where("process_instance.id = ?", r.ProcessInstanceId)
+		Where("process_instance.id = ?", r.Id).
+		Joins("inner join wf.circulation_history on circulation_history.process_instance_id = process_instance.id")
 
 	// 根据type的不同有不同的逻辑
 	switch r.Type {
 	case constant.HistoryTypeFull:
 	case constant.HistoryTypeSimple:
+		db.Where("source_id not like 'exclusiveGateway%' and source_id not like 'parallelGateway%'")
 	default:
 		return nil, util.BadRequest.New("type不合法")
 	}
@@ -44,7 +46,7 @@ func ListHistory(r *request.HistoryListRequest, c echo.Context) (*response.Pagin
 	db.Count(&count)
 
 	db = shared.ApplyPaging(db, &r.PagingRequest)
-	err := db.Find(&histories).Error
+	err := db.Select("circulation_history.*").Scan(&histories).Error
 
 	return &response.PagingResponse{
 		TotalCount:   count,

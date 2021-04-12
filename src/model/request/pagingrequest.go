@@ -26,7 +26,7 @@ type DefinitionListRequest struct {
 
 type HistoryListRequest struct {
 	PagingRequest
-	Keyword           string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` // 关键词
-	Type              int    `json:"type,omitempty" form:"type" query:"type"`                    // 类别 1=完整日志  2=简洁日志
-	ProcessInstanceId int    `json:"id" path:"id" swaggerignore:"true"`                                               // 工作流实例id
+	Keyword string `json:"keyword,omitempty" form:"keyword,omitempty" query:"keyword"` // 关键词
+	Type    int    `json:"type,omitempty" form:"type" query:"type"`                    // 类别 1=完整日志  2=简洁日志
+	Id      int    `json:"id" path:"id" swaggerignore:"true"`                          // 工作流实例id
 }

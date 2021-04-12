@@ -148,12 +148,40 @@ func ListProcessDefinition(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
-	instances, err := service.GetDefinitionList(&r, c)
+	definitions, err := service.GetDefinitionList(&r, c)
 	if err != nil {
 		return response.Failed(c, err)
 	}
 
-	return response.OkWithData(c, instances)
+	return response.OkWithData(c, definitions)
+}
+
+var (
+	DynamicPrefix = "/api"
+)
+
+// @Tags process-definitions
+// @Summary 克隆流程定义列表
+// @Accept  json
+// @Produce json
+// @param request body request.CloneDefinitionRequest true "request"
+// @param WF-TENANT-CODE header string true "WF-TENANT-CODE"
+// @param WF-CURRENT-USER header string true "WF-CURRENT-USER"
+// @Success 200 {object} response.HttpResponse
+// @Router /api/wf/process-definitions/_clone [POST]
+func CloneProcessDefinition(c echo.Context) error {
+	// 从queryString获取分页参数
+	var r request.CloneDefinitionRequest
+	if err := c.Bind(&r); err != nil {
+		return response.BadRequest(c)
+	}
+
+	denifition, err := service.CloneDefinition(&r, c)
+	if err != nil {
+		return response.Failed(c, err)
+	}
+
+	return response.OkWithData(c, denifition)
 }
 
 //// 分类流程列表

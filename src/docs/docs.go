@@ -188,6 +188,53 @@ var doc = `{
                 }
             }
         },
+        "/api/wf/process-definitions/_clone": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-definitions"
+                ],
+                "summary": "克隆流程定义列表",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CloneDefinitionRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "WF-TENANT-CODE",
+                        "name": "WF-TENANT-CODE",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "WF-CURRENT-USER",
+                        "name": "WF-CURRENT-USER",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.HttpResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/wf/process-definitions/{id}": {
             "get": {
                 "produces": [
@@ -651,53 +698,6 @@ var doc = `{
                 }
             }
         },
-        "/api/wf/role-users": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "role-users"
-                ],
-                "summary": "同步(创建或更新)角色用户映射关系",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.SyncRoleUsersRequest"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "WF-TENANT-CODE",
-                        "name": "WF-TENANT-CODE",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "WF-CURRENT-USER",
-                        "name": "WF-CURRENT-USER",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.HttpResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/wf/role-users/_batch": {
             "post": {
                 "consumes": [
@@ -717,7 +717,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.BatchSyncRoleUsersRequest"
+                            "$ref": "#/definitions/request.BatchSyncUserRoleRequest"
                         }
                     },
                     {
@@ -796,24 +796,40 @@ var doc = `{
                     "description": "变量名",
                     "type": "string"
                 },
-                "type": {
-                    "description": "变量类型 1=int 2=string 3=bool 4=float64",
-                    "type": "integer"
-                },
                 "value": {
                     "description": "变量值",
                     "type": "object"
                 }
             }
         },
-        "request.BatchSyncRoleUsersRequest": {
+        "request.BatchSyncUserRoleRequest": {
             "type": "object",
             "properties": {
-                "roleUsersList": {
+                "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/request.SyncRoleUsersRequest"
+                        "$ref": "#/definitions/request.RoleRequest"
                     }
+                },
+                "userRoles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/request.UserRoleRequest"
+                    }
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/request.UserRequest"
+                    }
+                }
+            }
+        },
+        "request.CloneDefinitionRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
                 }
             }
         },
@@ -914,17 +930,36 @@ var doc = `{
                 }
             }
         },
-        "request.SyncRoleUsersRequest": {
+        "request.RoleRequest": {
             "type": "object",
             "properties": {
-                "roleId": {
-                    "type": "integer"
+                "identifier": {
+                    "type": "string"
                 },
-                "userIds": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.UserRequest": {
+            "type": "object",
+            "properties": {
+                "identifier": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.UserRoleRequest": {
+            "type": "object",
+            "properties": {
+                "roleIdentifier": {
+                    "type": "string"
+                },
+                "userIdentifier": {
+                    "type": "string"
                 }
             }
         },
@@ -958,7 +993,7 @@ type swaggerInfo struct {
 var SwaggerInfo = swaggerInfo{
 	Version:     "",
 	Host:        "",
-	BasePath:    "",
+	BasePath:    "/okk",
 	Schemes:     []string{},
 	Title:       "",
 	Description: "",
