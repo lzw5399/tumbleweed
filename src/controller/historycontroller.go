@@ -29,6 +29,14 @@ func ListHistory(c echo.Context) error {
 		return response.BadRequest(c)
 	}
 
+	if r.Sort == "" {
+		r.Sort = "id"
+	}
+
+	if r.Order == "" {
+		r.Order = "desc"
+	}
+
 	trainNodes, err := service.ListHistory(&r, c)
 	if err != nil {
 		return response.Failed(c, err)

@@ -181,3 +181,18 @@ func GetDefinitionList(r *request.DefinitionListRequest, c echo.Context) (interf
 		Data:         &definitions,
 	}, err
 }
+
+func CloneDefinition(r *request.CloneDefinitionRequest, c echo.Context) (*model.ProcessDefinition, error) {
+	var (
+		tenantId, _ = util.GetWorkContext(c)
+	)
+	definition, err := GetDefinition(r.Id, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	newD := *definition
+	fmt.Printf("xinde: %p,jiude: %p,san:%p", &newD, definition,&*definition)
+
+	return nil, nil
+}

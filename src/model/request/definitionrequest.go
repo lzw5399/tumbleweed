@@ -48,3 +48,7 @@ func (p *ProcessDefinitionRequest) ProcessDefinition() model.ProcessDefinition {
 		SubmitCount: 0,
 	}
 }
+
+type CloneDefinitionRequest struct {
+	Id int `json:"id" form:"id"`
+}
