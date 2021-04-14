@@ -8,7 +8,6 @@ package dto
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -22,7 +21,7 @@ type Structure struct {
 func (j *Structure) Scan(value interface{}) error {
 	bytes, ok := value.([]byte)
 	if !ok {
-		return errors.New(fmt.Sprint("Failed to unmarshal dto.Structure value:", value))
+		return fmt.Errorf("Failed to unmarshal dto.Structure value: %v ", value)
 	}
 
 	var result Structure
