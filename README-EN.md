@@ -31,10 +31,10 @@ Processing for [Form]
    - UserTask
    - ScriptTask
 - Gateway
-   -ExclusiveGateway
-   -ParallelGateway
-   -InclusiveGateway
--SequenceFlow
+   - ExclusiveGateway
+   - ParallelGateway
+   - InclusiveGateway
+- SequenceFlow
 
 ## Technology Architecture
 
@@ -55,14 +55,14 @@ Support automatic migration (configurable on or off)
 
 ## Supported features
 
--All the basic functions that the above bpmn element should support
--Countersign
--Referral for approval
--Approval time limit Natural day/working day
-   -Timeout consequences (automatically pass/reject or no action)
--WebHook
--Multi-tenancy
--Process link for display
+- All the basic functions that the above bpmn element should support
+- Countersign
+- Referral for approval
+- Approval time limit Natural day/working day
+   - Timeout consequences (automatically pass/reject or no action)
+- WebHook
+- Multi-tenancy
+- Process link for display
 
 ## quality assurance
 
