@@ -30,9 +30,8 @@ func Setup() *echo.Echo {
 		RegisterSwagger(r)
 	}
 
-	const prefix = "/api/wf"
 	// apis
-	g := r.Group(prefix, customMiddleware.MultiTenant, customMiddleware.Auth)
+	g := r.Group("/api/wf", customMiddleware.MultiTenant, customMiddleware.Auth)
 	{
 		RegisterProcessDefinition(g) // 流程定义
 		RegisterProcessInstance(g)   // 流程实例
