@@ -67,3 +67,11 @@ gorm + postgres
 ## 质量保证
 
 - 集成测试
+
+## 致谢
+
+特别感谢[JetBrains](https://www.jetbrains.com?from=tumbleweed)提供的开源许可证授权
+
+ <a href="https://www.jetbrains.com?from=tumbleweed">
+   <img alt="Jetbrains" src="https://raw.githubusercontent.com/guikeller/blob/master/jetbrains.png" width="250" height="250">
+ </a>

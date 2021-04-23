@@ -64,6 +64,14 @@ Support automatic migration (configurable on or off)
 - Multi-tenancy
 - Process link for display
 
-## quality assurance
+## Quality assurance
 
 - Integration Testing
+
+## Project supported by JetBrains
+
+Many thanks to Jetbrains for kindly providing a license for me to work on this and other open-source projects.
+
+ <a href="https://www.jetbrains.com?from=tumbleweed">
+   <img alt="Jetbrains" src="https://raw.githubusercontent.com/guikeller/blob/master/jetbrains.png" width="250" height="250">
+ </a>
